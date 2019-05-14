@@ -1,0 +1,47 @@
+{
+    "exp_name": "ESHOCK",
+    "directories": {
+        "home_dir": "/media/ruairi/big_bck/ESHOCK",
+        "continuous_dir": "/media/ruairi/big_bck/ESHOCK/continuous",
+        "probe_dat_dir": "/media/ruairi/big_bck/ESHOCK/probe_dat_files",
+        "experimental_groups": "/media/ruairi/big_bck/ESHOCK/groups/experimental_groups.csv",
+        "groups": "/media/ruairi/big_bck/ESHOCK/groups/groups.csv"
+    },
+    "recording_config": {
+        "fs": 30000,
+        "probe_chanmap": [
+            22,
+            17,
+            28,
+            25,
+            29,
+            26,
+            20,
+            23,
+            21,
+            27,
+            31,
+            18,
+            30,
+            19,
+            24,
+            32,
+            6,
+            1,
+            12,
+            9,
+            13,
+            10,
+            4,
+            7,
+            5,
+            11,
+            15,
+            2,
+            14,
+            3,
+            8,
+            16
+        ]
+    }
+}

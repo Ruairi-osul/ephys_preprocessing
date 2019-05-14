@@ -1,0 +1,56 @@
+{
+    "exp_name": "CITWAY",
+    "directories": {
+        "home_dir": "/media/ruairi/big_bck/CITWAY",
+        "continuous_dir": "/media/ruairi/UBUNTU/CIT_WAY/continuous",
+        "tmp_dat_dir": "/media/ruairi/big_bck/CITWAY/tmp_files",
+        "probe_dat_dir": "/media/ruairi/big_bck/CITWAY/probe_dat_dir",
+        "experimental_groups": null,
+        "extracted": "/media/ruairi/big_bck/CITWAY/extracted"
+    },
+    "log_files": {
+        "pre_kilosort": "/media/ruairi/big_bck/CITWAY/log_files/pre_kilosort.txt"
+    },
+    "recording_config": {
+        "fs": 30000,
+        "blocks": [
+            "pre",
+            "chal",
+            "way"
+        ],
+        "probe_chanmap": [
+            22,
+            17,
+            28,
+            25,
+            29,
+            26,
+            20,
+            23,
+            21,
+            27,
+            31,
+            18,
+            30,
+            19,
+            24,
+            32,
+            6,
+            1,
+            12,
+            9,
+            13,
+            10,
+            4,
+            7,
+            5,
+            11,
+            15,
+            2,
+            14,
+            3,
+            8,
+            16
+        ]
+    }
+}
