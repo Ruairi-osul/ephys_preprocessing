@@ -109,10 +109,5 @@ if __name__ == "__main__":
                 [recording['name'], str(datetime.datetime.now()), '\n'])
             f.write(line)
 
-        with open(log_file, logmode) as f:
-            line = ','.join(
-                [recording['name'], str(datetime.datetime.now()), '\n'])
-            f.write(line)
-
         recording['todo'] = 'done'
         save_json(recordings_mapper, args['file_mapper'])
