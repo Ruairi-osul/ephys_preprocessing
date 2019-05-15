@@ -1,3 +1,5 @@
+import numpy as np
+
 
 class SpikeSortedRecording:
     '''
@@ -7,7 +9,19 @@ class SpikeSortedRecording:
         Get
 
     '''
-    pass
+
+    def __init__(self, path, nchans=32):
+        self.path = path
+        self.nchans = nchans
+        self.raw_data = self.load_data()
+
+    def load_data(self):
+        tmp = np.memmap(self.path)
+        shape = int(len(tmp) / self.nchans)
+        return np.memmap(self.path, dtype=np.int,
+                         shape=(shape, self.nchans))
+
+    def get_good_clusters(self):
 
 
 class DBInserter:
