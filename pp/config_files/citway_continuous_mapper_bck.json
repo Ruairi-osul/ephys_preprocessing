@@ -209,30 +209,6 @@
             "way": null
         }
     },
-    "acute_19": {
-        "name": "acute_19",
-        "todo": "yes",
-        "date": "2018-06-13",
-        "group_id": 1,
-        "excluded": null,
-        "continuous_dirs": {
-            "pre": "CIT_06_2018-06-13_14-29-45_PRE",
-            "chal": "CIT_06_2018-06-13_15-31-11_CIT",
-            "way": "CIT_06_2018-06-13_16-32-48_WAY"
-        }
-    },
-    "acute_20": {
-        "name": "acute_20",
-        "todo": "yes",
-        "date": "2018-06-14",
-        "group_id": 1,
-        "excluded": null,
-        "continuous_dirs": {
-            "pre": "CIT_07_2018-06-14_15-03-20_PRE",
-            "chal": "CIT_07_2018-06-14_16-04-02_CIT",
-            "way": null
-        }
-    },
     "acute_21": {
         "name": "acute_21",
         "todo": "yes",

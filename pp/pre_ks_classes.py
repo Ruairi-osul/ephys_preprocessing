@@ -31,7 +31,7 @@ class ContinuousRecording:
         if self.verbose:
             print(f'Loading data: {self.name}\nPath:{self.path}')
         data = None
-        session_options = ['0', '1']
+        session_options = ['0', '1', '2', '3']
         source_options = ['100', '120']
         working = False
         for source_option in source_options:
@@ -143,19 +143,19 @@ class PreKilosortPreprocessor:
                 if block_num == 0:
                     raise IOError(
                         f'Error preprocessing {self.name}\nCould not find {block_name}')
-                self.blocklenghts[block_name + '_samples'] = None
+                self.blocklenghts[block_name + '0_samples'] = None
                 continue
             if not isinstance(paths, list):
                 paths = [paths]
-            for path in paths:
+            for i, path in enumerate(paths):
                 continous_rec = ContinuousRecording(
                     path, chan_map=self.chan_map, name=block_name, verbose=self.verbose)
                 continous_rec.common_average_reference()
                 file_out = self.tmp_dir.joinpath(
-                    '_'.join([self.name, block_name])+'.dat')
+                    '_'.join([self.name, block_name, str(i)])+'.dat')
                 continous_rec.save_datfile(str(file_out))
                 self.blocklenghts[block_name +
-                                  '_samples'] = continous_rec.get_block_len()
+                                  f'{str(i)}_samples'] = continous_rec.get_block_len()
                 self.tmp_files.append(file_out)  # should be in order
 
         if self.verbose:

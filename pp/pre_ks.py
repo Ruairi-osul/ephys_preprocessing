@@ -14,27 +14,9 @@ def _get_options():
                         help='path to experiment config file')
     parser.add_argument('-m', '--mode', default='skip',
                         help='action to take if')
+    parser.add_argument('-l', '--log_mode', default='w',
+                        help='mode for writing to the logfile. specify "a" if NOT deleting and writing anew')
     return parser.parse_args()
-
-
-def main(recording, chan_map, blocks, tmp_home, dat_dir, group_id, date, extracted):
-    processor = PreKilosortPreprocessor(
-        name=recording['name'],
-        continuous_files=dirs,
-        extracted=extracted,
-        date=recording['date'],
-        chan_map=chan_map,
-        blocks=blocks,
-        tmp_dir=tmp_home,
-        dat_dir=probe_dat_dir,
-        group_id=recording['group_id'])
-    processor.create_dat()
-    processor.create_recordings_params()
-
-    with open(log_file, 'a') as f:
-        line = ','.join(
-            [recording['name'], str(datetime.datetime.now()), '\n'])
-        f.write(line)
 
 
 def load_json(path):
@@ -43,9 +25,9 @@ def load_json(path):
     return out
 
 
-def save_json(data, path):
+def save_json(recordings_mapper, path):
     with open(path, 'w') as f:
-        json.dump(data, f)
+        json.dump(recordings_mapper, f)
 
 
 def check_log(name, logfile):
@@ -55,30 +37,47 @@ def check_log(name, logfile):
         assert name not in line.split(',')
 
 
+def get_pp_options(experiment_settings):
+    continuous_home = Path(experiment_settings['directories']['continuous_dir']
+                           ) if 'continuous_dir' in experiment_settings['directories'] else None
+    tmp_home = Path(experiment_settings['directories']['tmp_dat_dir']
+                    ) if 'tmp_dat_dir' in experiment_settings['directories'] else None
+    probe_dat_dir = Path(experiment_settings['directories']['probe_dat_dir']
+                         ) if 'probe_dat_dir' in experiment_settings['directories'] else None
+    extracted = Path(experiment_settings['directories']['extracted']
+                     ) if 'extracted' in experiment_settings['directories'] else None
+    log_file = experiment_settings['log_files']['pre_kilosort']
+    chan_map = experiment_settings['recording_config']['probe_chanmap']
+    blocks = experiment_settings['recording_config']['blocks']
+    return continuous_home, tmp_home, probe_dat_dir, extracted, log_file, chan_map, blocks
+
+
+def make_continuous_dirs_abs(continuous_home, continuous_dirs):
+    dirs = {}
+    for block, path in continuous_dirs.items():
+        if isinstance(path, list):
+            dirs[block] = list(
+                map(lambda x: continuous_home.joinpath(x), path))
+        else:
+            dirs[block] = continuous_home.joinpath(
+                path) if path is not None else None
+    return dirs
+
+
 if __name__ == "__main__":
     args = vars(_get_options())
-    ops = load_json(args['config'])
-    data = load_json(args['file_mapper'])
+    experiment_settings = load_json(args['config'])
+    recordings_mapper = load_json(args['file_mapper'])
+    if len(recordings_mapper) == 1:
+        recordings_mapper = [recordings_mapper]
 
-    continuous_home = Path(ops['directories']['continuous_dir']
-                           ) if 'continuous_dir' in ops['directories'] else None
-    tmp_home = Path(ops['directories']['tmp_dat_dir']
-                    ) if 'tmp_dat_dir' in ops['directories'] else None
-    probe_dat_dir = Path(ops['directories']['probe_dat_dir']
-                         ) if 'probe_dat_dir' in ops['directories'] else None
-    extracted = Path(ops['directories']['extracted']
-                     ) if 'extracted' in ops['directories'] else None
+    continuous_home, tmp_home, probe_dat_dir, extracted, log_file, chan_map, blocks = get_pp_options(
+        experiment_settings)
 
-    log_file = ops['log_files']['pre_kilosort']
-    chan_map = ops['recording_config']['probe_chanmap']
-    blocks = ops['recording_config']['blocks']
+    for ind, recording in enumerate(recordings_mapper.values()):
 
-    if len(data) == 1:
-        data = [data]
-
-    for _, recording in data.items():
-
-        if recording['todo'] != 'yes':
+        if (recording['todo'] != 'yes') or ('continuous_dirs' not in recording):
+            print('skipping\n{}\n'.format(recording['name']))
             continue
         try:
             check_log(recording['name'], log_file)
@@ -87,22 +86,33 @@ if __name__ == "__main__":
                 raise ValueError('')
             elif args['mode'] == 'skip':
                 continue
-        if 'continuous_dirs' not in recording:
-            print(
-                'skipping\n{}\n'.format(recording['name']))
-            break
-        dirs = {}
-        for block, path in recording['continuous_dirs'].items():
-            if isinstance(path, list):
-                dirs[block] = list(
-                    map(lambda x: continuous_home.joinpath(x), path))
-            else:
-                dirs[block] = continuous_home.joinpath(
-                    path) if path is not None else None
 
-        main(recording, chan_map, blocks, tmp_home,
-             dat_dir=probe_dat_dir, group_id=recording['group_id'],
-             date=recording['date'], extracted=extracted)
+        continuous_dirs = make_continuous_dirs_abs(
+            continuous_home, recording['continuous_dirs'])
+
+        processor = PreKilosortPreprocessor(
+            name=recording['name'],
+            continuous_files=continuous_dirs,
+            extracted=extracted,
+            date=recording['date'],
+            chan_map=chan_map,
+            blocks=blocks,
+            tmp_dir=tmp_home,
+            dat_dir=probe_dat_dir,
+            group_id=recording['group_id'])
+        processor.create_dat()
+        processor.create_recordings_params()
+
+        logmode = args['log_mode'] if ind == 0 else 'a'
+        with open(log_file, logmode) as f:
+            line = ','.join(
+                [recording['name'], str(datetime.datetime.now()), '\n'])
+            f.write(line)
+
+        with open(log_file, logmode) as f:
+            line = ','.join(
+                [recording['name'], str(datetime.datetime.now()), '\n'])
+            f.write(line)
+
         recording['todo'] = 'done'
-
-    save_json(data, args['file_mapper'])
+        save_json(recordings_mapper, args['file_mapper'])
