@@ -185,3 +185,16 @@ class PreKilosortPreprocessor:
         fname = self.extracted.joinpath('recordings_params.json')
         with fname.open('w') as f:
             json.dump(params_out, f)
+
+
+class TimestampExtractor:
+
+    def __init__(self, path, extracted, threshold=2.5):
+        self.path = path
+        self.extracted = extracted
+
+    def load_data(self):
+        pass
+
+    def get_timestamps(self):
+        pass

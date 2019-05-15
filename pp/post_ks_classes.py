@@ -10,9 +10,10 @@ class SpikeSortedRecording:
 
     '''
 
-    def __init__(self, path, nchans=32):
+    def __init__(self, path, extracted, nchans=32):
         self.path = path
         self.nchans = nchans
+        self.extracted = extracted
         self.raw_data = self.load_data()
 
     def load_data(self):
@@ -22,6 +23,10 @@ class SpikeSortedRecording:
                          shape=(shape, self.nchans))
 
     def get_good_clusters(self):
+        pass
+
+    def get_waveforms(self):
+        pass
 
 
 class DBInserter:
