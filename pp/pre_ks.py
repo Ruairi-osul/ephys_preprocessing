@@ -38,6 +38,7 @@ def check_log(name, logfile):
 
 
 def get_pp_options(experiment_settings):
+    '''get nessary experiment settings'''
     continuous_home = Path(experiment_settings['directories']['continuous_dir']
                            ) if 'continuous_dir' in experiment_settings['directories'] else None
     tmp_home = Path(experiment_settings['directories']['tmp_dat_dir']
@@ -75,7 +76,6 @@ if __name__ == "__main__":
         experiment_settings)
 
     for ind, recording in enumerate(recordings_mapper.values()):
-
         if (recording['todo'] != 'yes') or ('continuous_dirs' not in recording):
             print('skipping\n{}\n'.format(recording['name']))
             continue
