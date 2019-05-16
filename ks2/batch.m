@@ -11,7 +11,7 @@ log_in_fileid = fopen(log_in_path, 'r');
 out = textscan(log_in_fileid, '%s%s', 'delimiter', ',');
 fclose(log_in_fileid);
 
-[names, date] = deal(out{:});
+[names, ~] = deal(out{:});
 
 %% load kilosort log
 
@@ -45,7 +45,7 @@ config_file = fullfile(pwd, 'ks_config.m');
 chan_map = fullfile(pwd, 'chanMap_cam32.mat');
 didnt_work = '/media/ruairi/big_bck/CITWAY/log_files/problems.txt';
 addpath('/home/ruairi/repos/eshock_analysis/ks2');
-for i = 2:length(names)
+for i = 1:length(names)
     todo = names{i};
     disp(todo)
  
