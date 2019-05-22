@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+from pprint import pprint as pp
+import pdb
 
 
 class SpikeSortedRecording:
@@ -21,23 +23,29 @@ class SpikeSortedRecording:
         self.path = path
         self.nchans = nchans
         self.extracted = extracted
-        self.raw_data = self.load_raw_data()
         self.good_clusters = self.get_cluster_group_ids(group='good')
         self.mua_clusters = self.get_cluster_group_ids(group='mua')
+
         self.spike_times = self.load_spike_times()
-        self.load_spike_clusters = load_spike_clusters
+        self.spike_clusters = self.load_spike_clusters()
+        self.good_spike_times = self.get_cluster_spiketimes(self.good_clusters)
+        self.mua_spike_times = self.get_cluster_spiketimes(self.mua_clusters)
+
+        self.raw_data = self.load_raw_data()
 
     def load_raw_data(self):
-        tmp = np.memmap(self.path)
+        path = self.path.joinpath(self.path.name + '.dat')
+        tmp = np.memmap(path)
         shape = int(len(tmp) / self.nchans)
-        return np.memmap(self.path, dtype=np.int,
+        return np.memmap(path, dtype=np.int,
                          shape=(shape, self.nchans))
 
     def get_cluster_group_ids(self, group):
+        'get set of cluster ids belonging to group'
         cluster_groups = pd.read_csv(
             self.path.joinpath('cluster_groups.csv'), sep='\t')
-        cluster_groups = cluster_groups.loc[cluster_groups['group'] == group, :]
-        return cluster_groups['cluster_id'].values
+        vals = cluster_groups.loc[cluster_groups['group'] == group, :]
+        return vals['cluster_id'].values
 
     def load_spike_times(self):
         return np.load(self.path.joinpath('spike_times.npy'))
@@ -46,6 +54,7 @@ class SpikeSortedRecording:
         return np.load(self.path.joinpath('spike_clusters.npy'))
 
     def get_cluster_spiketimes(self, clusters):
+        'create df of spiketimes (sample) and the cluster to which the spike originated'
         df = pd.DataFrame({'cluster_id': self.spike_clusters.flatten(),
                            'spike_times': self.spike_times.flatten()})
         return df.loc[df['cluster_id'].isin(clusters), :]
@@ -59,3 +68,11 @@ class DBInserter:
     Given a SpikeSortedRecording and an engine, can add to DB 
     '''
     pass
+
+
+if __name__ == '__main__':
+    from pathlib import Path
+
+    recording = Path('/media/ruairi/big_bck/CITWAY/probe_dat_dir/acute_05')
+    processor = SpikeSortedRecording(recording, extracted='')
+    pdb.set_trace()
