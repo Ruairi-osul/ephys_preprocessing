@@ -1,0 +1,9 @@
+{
+	"folders": [],
+	"settings": {
+		"terminal.integrated.env.linux": {
+			"PATH": "/home/ruairi/.platformio/penv/bin:/home/ruairi/.platformio/penv:/home/ruairi/.local/bin:/usr/local/cuda-9.0/bin:/home/ruairi/anaconda3/bin:/home/ruairi/.local/bin:/home/ruairi/anaconda3/condabin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/ruairi/.mountainlab/packages/ephys-viz/bin:/home/ruairi/.mountainlab/packages/ephys-viz/bin}:/home/ruairi/.mountainlab/packages/ephys-viz/bin",
+			"PLATFORMIO_CALLER": "vscode"
+		}
+	}
+}

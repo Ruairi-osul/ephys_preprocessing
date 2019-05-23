@@ -1,26 +1,30 @@
 %% set paths
 
-config_file = '/home/ruairi/repos/eshock_analysis/ks_config.m';
-chan_map = '/home/ruairi/repos/eshock_analysis/chanMap_cam32.mat';
-didnt_work = '/media/ruairi/big_bck/CITWAY/log_files/problems.txt';
+config_file = '/home/ruairi/repos/eshock_analysis/ks2/ks_config.m';
+chan_map = '/home/ruairi/repos/eshock_analysis/ks2/chanMap_cam32.mat';
+%didnt_work = '/media/ruairi/big_bck/CITWAY/log_files/problems.txt';
+didnt_work = '/media/ruairi/big_bck/HAMILTON/log_files/problems.txt';
 addpath(genpath('/home/ruairi/repos/eshock_analysis/ks2'));
-
+%data_path = /media/ruairi/big_bck/HAMILTON/probe_dat_dir;
+data_path = '/media/ruairi/big_bck/HAMILTON/probe_dat_dir';
 %% load log files
 
-log_out = '/media/ruairi/big_bck/CITWAY/log_files/kilosort.txt';
-log_in_path = '/media/ruairi/big_bck/CITWAY/log_files/pre_kilosort.txt';
+%log_out = '/media/ruairi/big_bck/CITWAY/log_files/kilosort.txt';
+%log_in_path = '/media/ruairi/big_bck/CITWAY/log_files/pre_kilosort.txt';
+log_out = '/media/ruairi/big_bck/HAMILTON/log_files/kilosort.txt';
+log_in_path = '/media/ruairi/big_bck/HAMILTON/log_files/pre_kilosort.txt';
+ks_path = log_out;
+
 log_in_fileid = fopen(log_in_path, 'r');
 out = textscan(log_in_fileid, '%s%s', 'delimiter', ',');
 fclose(log_in_fileid);
 
 [names, ~] = deal(out{:});
 
-data_path = '/media/ruairi/big_bck/CITWAY/probe_dat_dir';
 for i = 1:length(names)
     names{i} = fullfile(data_path, names{i});
 end
 
-ks_path = '/media/ruairi/big_bck/CITWAY/log_files/kilosort.txt';
 log_in_fileid = fopen(ks_path, 'r');
 out = textscan(log_in_fileid, '%s%s', 'delimiter', ',');
 fclose(log_in_fileid);

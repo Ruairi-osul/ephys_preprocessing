@@ -69,8 +69,6 @@ if __name__ == "__main__":
     args = vars(_get_options())
     experiment_settings = load_json(args['config'])
     recordings_mapper = load_json(args['file_mapper'])
-    if len(recordings_mapper) == 1:
-        recordings_mapper = [recordings_mapper]
 
     continuous_home, tmp_home, probe_dat_dir, extracted, log_file, chan_map, blocks = get_pp_options(
         experiment_settings)

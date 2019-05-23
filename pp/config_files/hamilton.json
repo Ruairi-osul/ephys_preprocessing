@@ -1,0 +1,60 @@
+{
+    "exp_name": "HAMILTON",
+    "directories": {
+        "home_dir": "/media/ruairi/big_bck/HAMILTON",
+        "continuous_dir": "/media/ruairi/big_bck/HAMILTON/continuous",
+        "tmp_dat_dir": "/media/ruairi/big_bck/HAMILTON/tmp_files",
+        "probe_dat_dir": "/media/ruairi/big_bck/HAMILTON/probe_dat_dir",
+        "experimental_groups": null,
+        "extracted": "/media/ruairi/big_bck/HAMILTON/extracted"
+    },
+    "log_files": {
+        "pre_kilosort": "/media/ruairi/big_bck/HAMILTON/log_files/pre_kilosort.txt"
+    },
+    "recording_config": {
+        "fs": 30000,
+        "blocks": [
+            "pre",
+            "baseshock",
+            "post_baseshock",
+            "chal",
+            "chalshock",
+            "post_chalshock",
+            "way"
+        ],
+        "probe_chanmap": [
+            22,
+            17,
+            28,
+            25,
+            29,
+            26,
+            20,
+            23,
+            21,
+            27,
+            31,
+            18,
+            30,
+            19,
+            24,
+            32,
+            6,
+            1,
+            12,
+            9,
+            13,
+            10,
+            4,
+            7,
+            5,
+            11,
+            15,
+            2,
+            14,
+            3,
+            8,
+            16
+        ]
+    }
+}
