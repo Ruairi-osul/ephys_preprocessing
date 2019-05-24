@@ -59,7 +59,19 @@ class SpikeSortedRecording:
                            'spike_times': self.spike_times.flatten()})
         return df.loc[df['cluster_id'].isin(clusters), :]
 
+    def get_ifr(self):
+        pass
+
     def get_waveforms(self):
+        pass
+
+    def get_timestamps(self, chan):
+        pass
+
+    def get_trials_set_lacencies(self):
+        pass
+
+    def save(self):
         pass
 
 
