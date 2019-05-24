@@ -56,7 +56,7 @@ def get_waveforms(spike_data, rd):
 
 
 def _extract_waveforms(spk_tms, raw_data, ret='data',
-                       n_spks=800, n_samps=240, n_chans=32):
+                       n_spks=600, n_samps=240, n_chans=32):
     assert len(spk_tms) > n_spks, 'Not ennough spikes'
     spk_tms = spk_tms.values
     window = np.arange(int(-n_samps / 2), int(n_samps / 2))

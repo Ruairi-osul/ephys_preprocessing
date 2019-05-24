@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+from preprocess import _extract_waveforms
+from functools import partial
 from pprint import pprint as pp
 import pdb
 
@@ -60,7 +62,15 @@ class SpikeSortedRecording:
         return df.loc[df['cluster_id'].isin(clusters), :]
 
     def get_waveforms(self):
-        pass
+        f1 = partial(_extract_waveforms, raw_data=self.raw_data, ret='data')
+        f2 = partial(_extract_waveforms, raw_data=self.raw_data, ret='')
+        waveforms = self.good_spike_times.groupby(
+            'cluster_id')['spike_times'].apply(f1, raw_data=self.raw_data).apply(pd.Series).reset_index()
+        chans = self.good_spike_times.groupby('cluster_id')['spike_times'].apply(
+            f2, raw_data=self.raw_data).apply(pd.Series).reset_index()
+        chans.columns = ['cluster_id', 'channel']
+        waveforms.columns = ['cluster_id', 'sample', 'value']
+        return waveforms, chans
 
 
 class DBInserter:

@@ -73,5 +73,4 @@ for i = 1:length(names)
     fclose(log_out_fileid);
 end
 
-        
     
