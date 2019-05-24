@@ -1,7 +1,11 @@
 import numpy as np
 import pandas as pd
-from preprocess import _extract_waveforms
+from preprocess import _extract_waveforms, loadContinuous
 from functools import partial
+from neo_bridge import df_to_neo, neo_to_df
+from quantities import s
+from elephant.statistics import instantaneous_rate as ifr
+import warnings
 from pprint import pprint as pp
 import pdb
 
@@ -21,8 +25,9 @@ class SpikeSortedRecording:
 
     '''
 
-    def __init__(self, path, extracted, nchans=32):
+    def __init__(self, path, extracted, adc=None, nchans=32, resolution=None, verbose=True):
         self.path = path
+        self.verbose = verbose
         self.nchans = nchans
         self.extracted = extracted
         self.good_clusters = self.get_cluster_group_ids(group='good')
@@ -34,13 +39,18 @@ class SpikeSortedRecording:
         self.mua_spike_times = self.get_cluster_spiketimes(self.mua_clusters)
 
         self.raw_data = self.load_raw_data()
+        #self.waveforms, self.chans = self.get_waveforms()
+        self.ifr = self.get_ifr(resolution=resolution)
+
+        if adc is not None:
+            self.get_timestamps(adc)
 
     def load_raw_data(self):
         path = self.path.joinpath(self.path.name + '.dat')
-        tmp = np.memmap(path)
+        tmp = np.memmap(path, mode='r', dtype=np.int16)
         shape = int(len(tmp) / self.nchans)
-        return np.memmap(path, dtype=np.int,
-                         shape=(shape, self.nchans))
+        return np.memmap(path, dtype=np.int16,
+                         shape=(shape, self.nchans), mode='r')
 
     def get_cluster_group_ids(self, group):
         'get set of cluster ids belonging to group'
@@ -61,10 +71,9 @@ class SpikeSortedRecording:
                            'spike_times': self.spike_times.flatten()})
         return df.loc[df['cluster_id'].isin(clusters), :]
 
-    def get_ifr(self):
-        pass
-
     def get_waveforms(self):
+        if self.verbose:
+            print('Extracting waveforms')
         f1 = partial(_extract_waveforms, raw_data=self.raw_data, ret='data')
         f2 = partial(_extract_waveforms, raw_data=self.raw_data, ret='')
         waveforms = self.good_spike_times.groupby(
@@ -75,8 +84,24 @@ class SpikeSortedRecording:
         waveforms.columns = ['cluster_id', 'sample', 'value']
         return waveforms, chans
 
-    def get_timestamps(self, chan):
-        pass
+    def get_ifr(self, fs=30000, resolution=None):
+        if self.verbose:
+            print('Calculating instantaneous firing rates of all neurons')
+        if resolution is None:
+            resolution = s
+        ids, st_list = df_to_neo(self.good_spike_times, stop=(
+            np.ceil(len(self.raw_data)/fs)))
+        warnings.filterwarnings("ignore")
+        a_sigs = list(
+            map(partial(ifr, sampling_period=resolution), st_list))
+        ifr_df = neo_to_df(a_sigs, ids)
+        ifr_df = ifr_df.rename_axis('time').reset_index()
+        return pd.melt(ifr_df, id_vars='time', var_name='cluster_id', value_name='firing_rate')
+
+    def get_timestamps(self, adc):
+        pdb.set_trace()
+        # TODO: ADD continuous path to be adc
+        #continuous = loadContinuous(self.path.joinpath(adc))
 
     def get_trials_set_lacencies(self):
         pass
@@ -87,7 +112,7 @@ class SpikeSortedRecording:
 
 class DBInserter:
     '''
-    Given a SpikeSortedRecording and an engine, can add to DB 
+    Given a SpikeSortedRecording and an engine, can add to DB
     '''
     pass
 
@@ -95,6 +120,6 @@ class DBInserter:
 if __name__ == '__main__':
     from pathlib import Path
 
-    recording = Path('/media/ruairi/big_bck/CITWAY/probe_dat_dir/acute_05')
-    processor = SpikeSortedRecording(recording, extracted='')
-    pdb.set_trace()
+    recording = Path('/media/ruairi/big_bck/CITWAY/probe_dat_dir/acute_02')
+    processor = SpikeSortedRecording(
+        recording, extracted='', adc='120_CH59.continuous')

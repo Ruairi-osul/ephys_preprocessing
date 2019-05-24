@@ -19,6 +19,14 @@ MAX_NUMBER_OF_RECORDS = int(1e6)
 MAX_NUMBER_OF_EVENTS = int(1e6)
 
 
+def distance_to_smaller_ref(arroi, ref):
+    '''Given an array of interest and a reference array, 
+    find the difference between each element of the array of interest
+    to the corresponding element in reference array which is smaller and minimises the distance between the reference element and the array of interest element'''
+    idx = np.searchsorted(ref, arroi, side='right')
+    return arroi-ref[idx-1]
+
+
 def gen_spikes_ts_df(spike_clusters, spike_times, good_cluster_nums):
     data = {'cluster_id': spike_clusters.flatten(),
             'spike_times': spike_times.flatten()}

@@ -184,7 +184,7 @@ class PreKilosortPreprocessor:
         params_out.update(self.blocklenghts)
         fname = self.extracted.joinpath('recordings_params.json')
         with fname.open('w') as f:
-            json.dump(params_out, f)
+            json.dump(params_out, f, index=2)
 
 
 class TimestampExtractor:
