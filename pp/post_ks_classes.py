@@ -61,6 +61,9 @@ class SpikeSortedRecording:
                            'spike_times': self.spike_times.flatten()})
         return df.loc[df['cluster_id'].isin(clusters), :]
 
+    def get_ifr(self):
+        pass
+
     def get_waveforms(self):
         f1 = partial(_extract_waveforms, raw_data=self.raw_data, ret='data')
         f2 = partial(_extract_waveforms, raw_data=self.raw_data, ret='')
@@ -71,6 +74,15 @@ class SpikeSortedRecording:
         chans.columns = ['cluster_id', 'channel']
         waveforms.columns = ['cluster_id', 'sample', 'value']
         return waveforms, chans
+
+    def get_timestamps(self, chan):
+        pass
+
+    def get_trials_set_lacencies(self):
+        pass
+
+    def save(self):
+        pass
 
 
 class DBInserter:
