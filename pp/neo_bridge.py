@@ -8,13 +8,8 @@ def df_to_neo(df, stop='max', grouping_col='cluster_id', fs=30000):
     '''convert a spiketime dataframe to a list of neo spike trains
     returns:
         ids, neo_list'''
-    if stop == 'baseline':
-        stop = 60 * 60
-    elif stop == 'cond1':
-        stop = 120 * 60
-    elif stop == 'cond 2':
-        stop = 180 * 60
-    elif stop == 'max':
+
+    if stop == 'max':
         stop = np.max(df['spike_times']) / fs
     g = df.groupby(grouping_col)['spike_times']
     return g.apply(len).index.values, g.apply(_neo_transformer, stop=stop, fs=fs)

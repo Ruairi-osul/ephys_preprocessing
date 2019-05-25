@@ -5,6 +5,7 @@ from functools import partial
 from neo_bridge import df_to_neo, neo_to_df
 from quantities import s
 from elephant.statistics import instantaneous_rate as ifr
+from utils import distance_to_smaller_ref
 import warnings
 from pprint import pprint as pp
 import pdb
@@ -13,23 +14,18 @@ import pdb
 class SpikeSortedRecording:
     '''
     path should be a pathlib object
-    Usage:
-        processor = SpikeSortedRecording(path, extracted)
-        processir.extract_spiketimes()
-        processor.extract_waveforms()
-        processor.calculate_ifr()
-        processor.get_trail_sampl
 
     methods:
         Get
 
     '''
 
-    def __init__(self, path, extracted, adc=None, nchans=32, resolution=None, verbose=True):
+    def __init__(self, path, extracted, adc=None, nchans=32, resolution=None, fs=30000, max_intertrial_interval=2, verbose=True):
         self.path = path
         self.verbose = verbose
         self.nchans = nchans
         self.extracted = extracted
+        self.fs = fs
         self.good_clusters = self.get_cluster_group_ids(group='good')
         self.mua_clusters = self.get_cluster_group_ids(group='mua')
 
@@ -40,7 +36,7 @@ class SpikeSortedRecording:
 
         self.raw_data = self.load_raw_data()
         #self.waveforms, self.chans = self.get_waveforms()
-        self.ifr = self.get_ifr(resolution=resolution)
+        self.ifr = self.get_ifr(resolution=resolution, fs=self.fs)
 
         if adc is not None:
             self.get_timestamps(adc)
@@ -103,7 +99,12 @@ class SpikeSortedRecording:
         # TODO: ADD continuous path to be adc
         #continuous = loadContinuous(self.path.joinpath(adc))
 
-    def get_trials_set_lacencies(self):
+    def get_trials_set_lacencies(self, trial_start=0.5, max_intertrial_interval=2):
+        # g = self.good_spike_times.groupby('cluster_id')['spike_times]
+        # distance = g.transform(distance_to_smaller_ref, ref=self.timestamps)
+        # latency = distance - int(trial_start * self.fs)
+        # max_latency = int(max_intertrial_interval * self.fs)
+        # latency[np.where( (latency > max_latency) | (latency < int(trial_start * self.fs)) )] = np.nan
         pass
 
     def save(self):
