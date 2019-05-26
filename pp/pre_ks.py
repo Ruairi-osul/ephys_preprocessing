@@ -77,7 +77,7 @@ if __name__ == "__main__":
         experiment_settings)
 
     for ind, recording in enumerate(recordings_mapper.values()):
-        if (recording['todo'] != 'yes') or ('continuous_dirs' not in recording):
+        if ((recording['todo'] != 'yes') and (args['on_duplicate'] != 'redo') or ('continuous_dirs' not in recording)):
             print('skipping\n{}\n'.format(recording['name']))
             continue
         try:
@@ -87,11 +87,14 @@ if __name__ == "__main__":
                 raise ValueError('')
             elif args['on_duplicate'] == 'skip':
                 continue
+            elif args['on_duplicate'] == 'redo':
+                pass
 
         continuous_dirs = make_continuous_dirs_abs(
             continuous_home, recording['continuous_dirs'])
 
         processor = PreKilosortPreprocessor(
+            experiment_name=experiment_settings['exp_name'],
             name=recording['name'],
             continuous_files=continuous_dirs,
             extracted=extracted,
@@ -101,8 +104,17 @@ if __name__ == "__main__":
             tmp_dir=tmp_home,
             dat_dir=probe_dat_dir,
             group_id=recording['group_id'])
-        processor.create_dat()
-        processor.create_recordings_params()
+
+        if args['mode'] == 'params':
+            processor.get_blocklengths()
+            processor.create_recordings_params()
+
+        elif args['mode'] == 'full':
+            processor.create_dat()
+            processor.create_recordings_params()
+        else:
+            raise ValueError(
+                'Unknown argument for "mode" parameter. Should "full" or "skip"')
 
         logmode = args['log_mode'] if ind == 0 else 'a'
         with open(log_file, logmode) as f:
