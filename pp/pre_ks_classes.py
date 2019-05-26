@@ -10,7 +10,15 @@ import pdb
 
 
 class ContinuousRecording:
-    '''
+    ''' Class for handling data stored as .continuous files
+    Initialise with a path to the containing folder
+
+    Methods:
+        set_probe_data: use chan_map attribute to load in probe data
+        set_single_file: load a single file. Can specify alternative to the default channel 1
+        common_average_reference: apply a common average reference to all channels stored in the data attr
+        get_block_len: get the number of samples in the recording
+        save_datfile: save the contents of the data attr to a .dat file
     '''
     session_options = ['0', '1', '2', '3']
     source_options = ['100', '120']
@@ -50,7 +58,7 @@ class ContinuousRecording:
         self.data = data
 
     def set_single_file(self, ch='1'):
-
+        'specify ch as a string integer'
         data = None
         working = False
         for source_option in self.source_options:
@@ -92,36 +100,24 @@ class ContinuousRecording:
 
 class PreKilosortPreprocessor:
     '''
-    One per each recording session.
-    Attributes:
-        chan_map
-        recording_name
-        continuous_files
-        blocks !!! must be in order
-
-    Methods:
-
-        create_dat:
-            For each continuous file:
-                load
-                common average reference
-                create tmp .dat file
-            concat tmp dat files
-
-        create_recordings_params:
-            load block_lengths.json
-            create recording params.json: {date, block_lengths, start_time, group_id}
-
-    Output:
-        recording_name.dat
-        recordings_params.json (for insertion into the recordings table)
+    class for handling prekilosort preprocessing of continuous files
+    methods:
+        _create_dirs: creates directories if necessary for output. Does not overwrite if exists.
+        create_dat: uses chan_map to identify probe channels, 
+                    concatenates data across blocks and applies a common average reference to each
+                    saves results as a .dat file which can be used during kilosort spike sorting.
+                    saves the blocklengths of each recording
+        get_block_lengths:  used when creating .dat files is not necessary. 
+                            loads in a single .continuous file per block and stores the blocklengths
+        create_recording_params: 
     '''
 
-    def __init__(self, name, continuous_files, chan_map, date,
-                 blocks, group_id, extracted=None, tmp_dir=None, dat_dir=None, verbose=True):
+    def __init__(self, name, continuous_files, chan_map,
+                 blocks, date=None, group_id=None, experiment_name=None, extracted=None, tmp_dir=None, dat_dir=None, verbose=True):
         'continuous_files should be a dictionary'
 
         self.verbose = verbose
+        self.experiment_name = experiment_name
         self.blocks = blocks
         self.chan_map = chan_map
         self.group_id = group_id
@@ -210,19 +206,14 @@ class PreKilosortPreprocessor:
                 paths = [paths]
             for i, path in enumerate(paths):
                 continous_rec = ContinuousRecording(
-                    path, chan_map=self.chan_map, name=block_name, verbose=self.verbose)
-                continous_rec.common_average_reference()
-                file_out = self.tmp_dir.joinpath(
-                    '_'.join([self.name, block_name, str(i)])+'.dat')
-                continous_rec.save_datfile(str(file_out))
+                    path, verbose=self.verbose)
                 self.blocklenghts[block_name +
                                   f'{str(i)}_samples'] = continous_rec.get_block_len()
-                self.tmp_files.append(file_out)  # should be in order
 
     def _get_start_time(self):
         first_block_name = self.blocks[0]
         first_block_file = str(self.continuous_files[first_block_name])
-        time_pattern = '_\d{2}-\d{2}-\d{2}_'
+        time_pattern = r'_\d{2}-\d{2}-\d{2}_'
         start_idx = re.search(time_pattern, first_block_file).start()
         end_idx = re.search(time_pattern, first_block_file).end()
         return first_block_file[start_idx + 1: end_idx - 1]
@@ -230,32 +221,11 @@ class PreKilosortPreprocessor:
     def create_recordings_params(self):
         # TODO add start time
         params_out = {"name": self.name,
-                      "group_id": self.group_id, "date": self.date}
+                      "exp_name": self.experiment_name,
+                      "group_id": self.group_id,
+                      "date": self.date,
+                      "start_time": self.start_time}
         params_out.update(self.blocklenghts)
         fname = self.extracted.joinpath('recordings_params.json')
         with fname.open('w') as f:
             json.dump(params_out, f, index=2)
-
-
-class TimestampExtractor:
-
-    def __init__(self, path, extracted, threshold=2.5):
-        self.path = path
-        self.extracted = extracted
-
-    def load_data(self):
-        pass
-
-    def get_timestamps(self):
-        pass
-
-
-def test():
-    p = '/media/ruairi/big_bck/HAMILTON/continuous/HAMILTON_03_2019-05-24_11-01-33_PRE'
-    rec = ContinuousRecording(p)
-    rec.set_single_file()
-    print(rec.get_block_len())
-
-
-if __name__ == '__main__':
-    test()
