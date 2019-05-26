@@ -12,10 +12,13 @@ def _get_options():
                         help='path to .json file with mappings')
     parser.add_argument('-c', '--config', required=True,
                         help='path to experiment config file')
-    parser.add_argument('-m', '--mode', default='skip',
-                        help='action to take if')
-    parser.add_argument('-l', '--log_mode', default='w',
-                        help='mode for writing to the logfile. specify "a" if NOT deleting and writing anew')
+    parser.add_argument('-m', '--mode', default='full',
+                        help='specify pp behaviour, specify "params" if getting recordings params only. Defaults to "full".')
+    parser.add_argument('-d', '--on_duplicate', default='skip',
+                        help='action to take for already completed recordings')
+    parser.add_argument('-l', '--log_mode', default='a',
+                        help='mode for writing to the logfile. specify "w" if deleting and writing anew. Defaults to "a"')
+
     return parser.parse_args()
 
 
@@ -80,9 +83,9 @@ if __name__ == "__main__":
         try:
             check_log(recording['name'], log_file)
         except AssertionError:
-            if args['mode'] == 'fail':
+            if args['on_duplicate'] == 'fail':
                 raise ValueError('')
-            elif args['mode'] == 'skip':
+            elif args['on_duplicate'] == 'skip':
                 continue
 
         continuous_dirs = make_continuous_dirs_abs(

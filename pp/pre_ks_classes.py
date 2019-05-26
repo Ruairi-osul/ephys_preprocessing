@@ -1,4 +1,4 @@
-from utils import loadFolderToArray
+from utils import loadFolderToArray, loadContinuous
 import numpy as np
 import os
 from pathlib import Path
@@ -6,36 +6,34 @@ import json
 from pprint import pprint as pp
 import re
 import datetime
+import pdb
 
 
 class ContinuousRecording:
     '''
-    Has block and experiment attributes.
-
-    Methods:
-        Load
-        Common average reference:
-        Save to dat:
-
     '''
+    session_options = ['0', '1', '2', '3']
+    source_options = ['100', '120']
 
-    def __init__(self, path, chan_map, name=None, verbose=False):
+    def __init__(self, path, chan_map=None, name=None, verbose=False):
+        # TODO expand to be useful for one recording
+        if isinstance(path, str):
+            from pathlib import Path
+            path = Path(path)
         self.path = path  # (n_samples, n_channels)
         self.chan_map = chan_map
         self.verbose = verbose
         self.name = path if name is None else name
-        self.data = self.load_data()
-        self.block_len = self.get_block_len()
 
-    def load_data(self):
+    def set_probe_data(self):
         if self.verbose:
             print(f'Loading data: {self.name}\nPath:{self.path}')
+        if self.chan_map is None:
+            raise ValueError('Trying to load probe data without chan map')
         data = None
-        session_options = ['0', '1', '2', '3']
-        source_options = ['100', '120']
         working = False
-        for source_option in source_options:
-            for session_option in session_options:
+        for source_option in self.source_options:
+            for session_option in self.session_options:
                 try:
                     data = loadFolderToArray(self.path, channels=self.chan_map, dtype=np.int16,
                                              chprefix='CH', session=session_option, source=source_option)
@@ -49,7 +47,32 @@ class ContinuousRecording:
         if data is None:
             raise IOError(
                 'Could not load continuous files\n{}'.format(str(self.path)))
-        return data
+        self.data = data
+
+    def set_single_file(self, ch='1'):
+
+        data = None
+        working = False
+        for source_option in self.source_options:
+            for session_option in self.session_options:
+                if session_option == '0':
+                    p = source_option + '_' + 'CH' + ch + '.continuous'
+                else:
+                    p = source_option + '_' + 'CH' + ch + '_' + session_option + '.continuous'
+                try:
+                    # pdb.set_trace()
+                    data = loadContinuous(str(self.path.joinpath(p)))['data']
+                    working = True
+                    break
+                except:
+                    continue
+            if working:
+                break
+
+        if data is None:
+            raise IOError(
+                'Could not load continuous files\n{}'.format(str(self.path)))
+        self.data = data
 
     def common_average_reference(self):
         if self.verbose:
@@ -90,7 +113,7 @@ class PreKilosortPreprocessor:
             create recording params.json: {date, block_lengths, start_time, group_id}
 
     Output:
-        recording_name.dat 
+        recording_name.dat
         recordings_params.json (for insertion into the recordings table)
     '''
 
@@ -150,6 +173,7 @@ class PreKilosortPreprocessor:
             for i, path in enumerate(paths):
                 continous_rec = ContinuousRecording(
                     path, chan_map=self.chan_map, name=block_name, verbose=self.verbose)
+                continous_rec.set_probe_data()
                 continous_rec.common_average_reference()
                 file_out = self.tmp_dir.joinpath(
                     '_'.join([self.name, block_name, str(i)])+'.dat')
@@ -170,6 +194,31 @@ class PreKilosortPreprocessor:
             for tmp in self.tmp_files:
                 os.remove(str(tmp))
 
+    def get_blocklengths(self):
+        if self.verbose:
+            print(f'{self.name}: Gettng block_lengths')
+
+        for block_num, block_name in enumerate(self.blocks):
+            paths = self.continuous_files[block_name]
+            if paths is None:
+                if block_num == 0:
+                    raise IOError(
+                        f'Error preprocessing {self.name}\nCould not find {block_name}')
+                self.blocklenghts[block_name + '0_samples'] = None
+                continue
+            if not isinstance(paths, list):
+                paths = [paths]
+            for i, path in enumerate(paths):
+                continous_rec = ContinuousRecording(
+                    path, chan_map=self.chan_map, name=block_name, verbose=self.verbose)
+                continous_rec.common_average_reference()
+                file_out = self.tmp_dir.joinpath(
+                    '_'.join([self.name, block_name, str(i)])+'.dat')
+                continous_rec.save_datfile(str(file_out))
+                self.blocklenghts[block_name +
+                                  f'{str(i)}_samples'] = continous_rec.get_block_len()
+                self.tmp_files.append(file_out)  # should be in order
+
     def _get_start_time(self):
         first_block_name = self.blocks[0]
         first_block_file = str(self.continuous_files[first_block_name])
@@ -179,6 +228,7 @@ class PreKilosortPreprocessor:
         return first_block_file[start_idx + 1: end_idx - 1]
 
     def create_recordings_params(self):
+        # TODO add start time
         params_out = {"name": self.name,
                       "group_id": self.group_id, "date": self.date}
         params_out.update(self.blocklenghts)
@@ -198,3 +248,14 @@ class TimestampExtractor:
 
     def get_timestamps(self):
         pass
+
+
+def test():
+    p = '/media/ruairi/big_bck/HAMILTON/continuous/HAMILTON_03_2019-05-24_11-01-33_PRE'
+    rec = ContinuousRecording(p)
+    rec.set_single_file()
+    print(rec.get_block_len())
+
+
+if __name__ == '__main__':
+    test()

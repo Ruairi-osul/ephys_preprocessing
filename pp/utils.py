@@ -37,7 +37,7 @@ def gen_spikes_ts_df(spike_clusters, spike_times, good_cluster_nums):
 
 def loadContinuous(filepath, dtype=float):
 
-        # constants
+    # constants
     NUM_HEADER_BYTES = 1024
     SAMPLES_PER_RECORD = 1024
     BYTES_PER_SAMPLE = 2
