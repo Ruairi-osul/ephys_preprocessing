@@ -7,7 +7,7 @@
         "probe_dat_dir": "/media/ruairi/SD_BCK/GAT_DREADD/dat_files",
         "experimental_groups": "/media/ruairi/SD_BCK/GAT_DREADD/group_info/experimental_groups.csv",
         "extracted": "/media/ruairi/SD_BCK/GAT_DREADD/extracted",
-        "continuous_mapper": "/home/ruairi/repos/ephys_preprocessing/pp/config_files/gat_dreadd_continuous_mapper.json"
+        "continuous_mapper": "/media/ruairi/SD_BCK/GAT_DREADD/config_files/gat_dreadd_continuous_mapper.json"
     },
     "log_files": {
         "pre_kilosort": "/media/ruairi/SD_BCK/GAT_DREADD/logfiles/prekilosort.txt",

@@ -7,7 +7,7 @@
         "probe_dat_dir": "/media/ruairi/big_bck/HAMILTON/probe_dat_dir",
         "experimental_groups": "/media/ruairi/big_bck/HAMILTON/group_info/experimental_groups.csv",
         "extracted": "/media/ruairi/big_bck/HAMILTON/extracted",
-        "continuous_mapper": "/home/ruairi/repos/ephys_preprocessing/pp/config_files/hamilton_continuous_mapper.json"
+        "continuous_mapper": "/media/ruairi/big_bck/HAMILTON/config_files/hamilton_continuous_mapper.json"
     },
     "log_files": {
         "pre_kilosort": "/media/ruairi/big_bck/HAMILTON/log_files/pre_kilosort.txt",
@@ -23,6 +23,10 @@
             "chalshock",
             "post_chalshock",
             "way"
+        ],
+        "adc": [
+            "eshock_ttl",
+            "temperature"
         ],
         "probe_chanmap": [
             22,

@@ -7,7 +7,7 @@
         "probe_dat_dir": "/media/ruairi/SD_BCK/SERT_DREADD/dat_files/cat",
         "experimental_groups": "/media/ruairi/SD_BCK/SERT_DREADD/group_info/experimental_groups",
         "extracted": "/media/ruairi/SD_BCK/SERT_DREADD/extracted",
-        "continuous_mapper": "/home/ruairi/repos/ephys_preprocessing/pp/config_files/sert_dreadd_continuous_mapper.json"
+        "continuous_mapper": "/media/ruairi/SD_BCK/SERT_DREADD/config_files/sert_dreadd_continuous_mapper.json"
     },
     "log_files": {
         "pre_kilosort": "/media/ruairi/SD_BCK/SERT_DREADD/logfiles/prekilosort.txt",
