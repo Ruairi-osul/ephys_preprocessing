@@ -3,21 +3,26 @@ import json
 import argparse
 from pathlib import Path
 import datetime
+import pdb
 
 
 def _get_options():
     parser = argparse.ArgumentParser(
-        description='Create .dat files for kilosort spike sorting')
-    parser.add_argument('-f', '--file_mapper', required=True,
-                        help='path to .json file with mappings')
+        description='All meta and probe-related preprocessing that can'
+                    'be done pre kilosort')
+
     parser.add_argument('-c', '--config', required=True,
-                        help='path to experiment config file')
+                        help='Path to experiment config file')
     parser.add_argument('-m', '--mode', default='full',
-                        help='specify pp behaviour, specify "params" if getting recordings params only. Defaults to "full".')
+                        help='Set behaviour between {"full", "params"}'
+                        'Specify "params" if getting recordings params only.'
+                        'Defaults to "full".')
     parser.add_argument('-d', '--on_duplicate', default='skip',
-                        help='action to take for already completed recordings')
+                        help='Action to take when duplicates are found.'
+                        'Set behaviour between {"skip", "fail", "redo"}, already completed recordings')
     parser.add_argument('-l', '--log_mode', default='a',
-                        help='mode for writing to the logfile. specify "w" if deleting and writing anew. Defaults to "a"')
+                        help='mode for writing to the logfile. specify "w" if'
+                        'deleting and writing anew. Defaults to "a"')
 
     return parser.parse_args()
 
@@ -71,20 +76,24 @@ def make_continuous_dirs_abs(continuous_home, continuous_dirs):
 if __name__ == "__main__":
     args = vars(_get_options())
     experiment_settings = load_json(args['config'])
-    recordings_mapper = load_json(args['file_mapper'])
+    recordings_mapper = load_json(
+        experiment_settings['directories']['continuous_mapper'])
 
     continuous_home, tmp_home, probe_dat_dir, extracted, log_file, chan_map, blocks = get_pp_options(
         experiment_settings)
 
     for ind, recording in enumerate(recordings_mapper.values()):
+
+        # Does this recording need to be done?
         if ((recording['todo'] != 'yes') and (args['on_duplicate'] != 'redo') or ('continuous_dirs' not in recording)):
             print('skipping\n{}\n'.format(recording['name']))
             continue
+        # Has this recording been done?
         try:
             check_log(recording['name'], log_file)
         except AssertionError:
             if args['on_duplicate'] == 'fail':
-                raise ValueError('')
+                raise ValueError('duplicate found')
             elif args['on_duplicate'] == 'skip':
                 continue
             elif args['on_duplicate'] == 'redo':
@@ -105,16 +114,16 @@ if __name__ == "__main__":
             dat_dir=probe_dat_dir,
             group_id=recording['group_id'])
 
-        if args['mode'] == 'params':
+        if args['mode'] == 'params':                # for just params
             processor.get_blocklengths()
             processor.create_recordings_params()
-
-        elif args['mode'] == 'full':
+        elif args['mode'] == 'full':                # for creating dat
             processor.create_dat()
             processor.create_recordings_params()
         else:
             raise ValueError(
-                'Unknown argument for "mode" parameter. Should "full" or "skip"')
+                'Unknown argument for "--mode" parameter.'
+                'Should "full" or "skip"')
 
         logmode = args['log_mode'] if ind == 0 else 'a'
         with open(log_file, logmode) as f:
@@ -123,4 +132,5 @@ if __name__ == "__main__":
             f.write(line)
 
         recording['todo'] = 'done'
-        save_json(recordings_mapper, args['file_mapper'])
+        save_json(recordings_mapper,
+                  experiment_settings['directories']['continuous_mapper'])

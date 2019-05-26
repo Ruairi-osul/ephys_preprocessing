@@ -207,6 +207,7 @@ class PreKilosortPreprocessor:
             for i, path in enumerate(paths):
                 continous_rec = ContinuousRecording(
                     path, verbose=self.verbose)
+                continous_rec.set_single_file()
                 self.blocklenghts[block_name +
                                   f'{str(i)}_samples'] = continous_rec.get_block_len()
 
@@ -228,4 +229,4 @@ class PreKilosortPreprocessor:
         params_out.update(self.blocklenghts)
         fname = self.extracted.joinpath('recordings_params.json')
         with fname.open('w') as f:
-            json.dump(params_out, f, index=2)
+            json.dump(params_out, f, indent=2)
