@@ -1,28 +1,26 @@
 {
-    "exp_name": "eshock",
+    "exp_name": "sert_dreadd",
     "directories": {
-        "home_dir": "/media/ruairi/big_bck/ESHOCK",
-        "continuous_dir": "/media/ruairi/big_bck/ESHOCK/continuous",
-        "tmp_dat_dir": "/media/ruairi/big_bck/ESHOCK/temp_dat_dir",
-        "probe_dat_dir": "/media/ruairi/big_bck/ESHOCK/probe_dat_files",
-        "experimental_groups": "/media/ruairi/big_bck/ESHOCK/groups/experimental_groups.csv",
-        "extracted": "/media/ruairi/big_bck/ESHOCK/extracted",
-        "continuous_mapper": null
+        "home_dir": "/media/ruairi/SD_BCK/SERT_DREADD",
+        "continuous_dir": "/media/ruairi/SD_BCK/SERT_DREADD/continuous",
+        "tmp_dat_dir": "/media/ruairi/SD_BCK/SERT_DREADD/tmp",
+        "probe_dat_dir": "/media/ruairi/SD_BCK/SERT_DREADD/dat_files/cat",
+        "experimental_groups": "/media/ruairi/SD_BCK/SERT_DREADD/group_info/experimental_groups",
+        "extracted": "/media/ruairi/SD_BCK/SERT_DREADD/extracted",
+        "continuous_mapper": "/home/ruairi/repos/ephys_preprocessing/pp/config_files/sert_dreadd_continuous_mapper.json"
     },
     "log_files": {
-        "pre_kilosort": "/media/ruairi/big_bck/ESHOCK/log_files/prekilosort.txt",
-        "post_kilosort": "/media/ruairi/big_bck/ESHOCK/log_files/postkilosort.txt"
+        "pre_kilosort": "/media/ruairi/SD_BCK/SERT_DREADD/logfiles/prekilosort.txt",
+        "post_kilosort": "/media/ruairi/SD_BCK/SERT_DREADD/logfiles/postkilosort.txt"
     },
     "recording_config": {
         "fs": 30000,
         "blocks": [
             "pre",
-            "shock",
-            "post_shock",
-            "dpat"
+            "cno"
         ],
         "adc": [
-            "eshock_ttl"
+            "temperature"
         ],
         "eeg": [
             "frontal_left",

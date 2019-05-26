@@ -1,15 +1,17 @@
 {
-    "exp_name": "CITWAY",
+    "exp_name": "citway",
     "directories": {
         "home_dir": "/media/ruairi/big_bck/CITWAY",
         "continuous_dir": "/media/ruairi/UBUNTU/CIT_WAY/continuous",
         "tmp_dat_dir": "/media/ruairi/big_bck/CITWAY/tmp_files",
         "probe_dat_dir": "/media/ruairi/big_bck/CITWAY/probe_dat_dir",
-        "experimental_groups": null,
-        "extracted": "/media/ruairi/big_bck/CITWAY/extracted"
+        "experimental_groups": "/media/ruairi/big_bck/CITWAY/group_info/experimental_groups.csv",
+        "extracted": "/media/ruairi/big_bck/CITWAY/extracted",
+        "continuous_mapper": "/home/ruairi/repos/ephys_preprocessing/pp/config_files/citway_continuous_mapper.json"
     },
     "log_files": {
-        "pre_kilosort": "/media/ruairi/big_bck/CITWAY/log_files/pre_kilosort.txt"
+        "pre_kilosort": "/media/ruairi/big_bck/CITWAY/log_files/pre_kilosort.txt",
+        "post_kilosort": "/media/ruairi/big_bck/CITWAY/log_files/postkilosort.txt"
     },
     "recording_config": {
         "fs": 30000,
@@ -17,6 +19,18 @@
             "pre",
             "chal",
             "way"
+        ],
+        "adc": null,
+        "eeg": [
+            "frontal_left",
+            "frontal_right",
+            "occipital"
+        ],
+        "lfp": [
+            0,
+            15,
+            17,
+            31
         ],
         "probe_chanmap": [
             22,

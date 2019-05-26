@@ -1,0 +1,17 @@
+{
+    "eshock_01": {
+        "name": "ESHOCK_01",
+        "todo": "yes",
+        "date": "2019-02-28",
+        "group_id": 1,
+        "excluded": null,
+        "continuous_dirs": {
+            "pre": "ESHOCK_01_2019-02-28_14-09-37_PRE",
+            "shock": "CIT_WAY_1_2018-05-01_17-05-11_cit",
+            "pst": "CIT_WAY_1_2018-05-01_18-06-45_way"
+        },
+        "adc_chans": {
+            "eshock_ttl": ""
+        }
+    }
+}

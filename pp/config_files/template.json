@@ -1,29 +1,22 @@
 {
-    "exp_name": "eshock",
+    "exp_name": "",
     "directories": {
-        "home_dir": "/media/ruairi/big_bck/ESHOCK",
-        "continuous_dir": "/media/ruairi/big_bck/ESHOCK/continuous",
-        "tmp_dat_dir": "/media/ruairi/big_bck/ESHOCK/temp_dat_dir",
-        "probe_dat_dir": "/media/ruairi/big_bck/ESHOCK/probe_dat_files",
-        "experimental_groups": "/media/ruairi/big_bck/ESHOCK/groups/experimental_groups.csv",
-        "extracted": "/media/ruairi/big_bck/ESHOCK/extracted",
-        "continuous_mapper": null
+        "home_dir": "",
+        "continuous_dir": "",
+        "tmp_dat_dir": "",
+        "probe_dat_dir": "",
+        "experimental_groups": "",
+        "extracted": "",
+        "continuous_mapper": ""
     },
     "log_files": {
-        "pre_kilosort": "/media/ruairi/big_bck/ESHOCK/log_files/prekilosort.txt",
-        "post_kilosort": "/media/ruairi/big_bck/ESHOCK/log_files/postkilosort.txt"
+        "pre_kilosort": "",
+        "post_kilosort": ""
     },
     "recording_config": {
         "fs": 30000,
-        "blocks": [
-            "pre",
-            "shock",
-            "post_shock",
-            "dpat"
-        ],
-        "adc": [
-            "eshock_ttl"
-        ],
+        "blocks": [],
+        "adc": null,
         "eeg": [
             "frontal_left",
             "frontal_right",

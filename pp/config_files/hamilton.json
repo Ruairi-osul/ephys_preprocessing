@@ -1,15 +1,17 @@
 {
-    "exp_name": "HAMILTON",
+    "exp_name": "hamilton",
     "directories": {
         "home_dir": "/media/ruairi/big_bck/HAMILTON",
         "continuous_dir": "/media/ruairi/big_bck/HAMILTON/continuous",
         "tmp_dat_dir": "/media/ruairi/big_bck/HAMILTON/tmp_files",
         "probe_dat_dir": "/media/ruairi/big_bck/HAMILTON/probe_dat_dir",
-        "experimental_groups": null,
-        "extracted": "/media/ruairi/big_bck/HAMILTON/extracted"
+        "experimental_groups": "/media/ruairi/big_bck/HAMILTON/group_info/experimental_groups.csv",
+        "extracted": "/media/ruairi/big_bck/HAMILTON/extracted",
+        "continuous_mapper": "/home/ruairi/repos/ephys_preprocessing/pp/config_files/hamilton_continuous_mapper.json"
     },
     "log_files": {
-        "pre_kilosort": "/media/ruairi/big_bck/HAMILTON/log_files/pre_kilosort.txt"
+        "pre_kilosort": "/media/ruairi/big_bck/HAMILTON/log_files/pre_kilosort.txt",
+        "post_kilosort": "/media/ruairi/big_bck/HAMILTON/log_files/postkilosort.txt"
     },
     "recording_config": {
         "fs": 30000,
