@@ -11,6 +11,7 @@
     },
     "log_files": {
         "pre_kilosort": "/media/ruairi/big_bck/ESHOCK/log_files/prekilosort.txt",
+        "kilosort": "/media/ruairi/big_bck/ESHOCK/log_files/kilosort.txt",
         "post_kilosort": "/media/ruairi/big_bck/ESHOCK/log_files/postkilosort.txt"
     },
     "recording_config": {

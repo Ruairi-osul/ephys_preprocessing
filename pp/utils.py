@@ -81,7 +81,7 @@ def loadContinuous(filepath, dtype=float):
         # print index
 
         if N != SAMPLES_PER_RECORD:
-            raise Exception(
+            raise ValueError(
                 'Found corrupted record in block ' + str(recordNumber))
 
         # big-endian 16-bit unsigned integer

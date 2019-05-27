@@ -56,21 +56,27 @@ class ContinuousRecording:
                 'Could not load continuous files\n{}'.format(str(self.path)))
         self.data = data
 
-    def set_single_file(self, ch='1'):
+    def set_single_file(self, ch='1', chprefix='CH'):
         'specify ch as a string integer'
         data = None
         working = False
+        if 'ADC' in ch:
+            chprefix = 'ADC'
+            ch = ch[-1]
+
         for source_option in self.source_options:
             for session_option in self.session_options:
                 if session_option == '0':
-                    p = source_option + '_' + 'CH' + ch + '.continuous'
+                    p = source_option + '_' + chprefix + ch + '.continuous'
                 else:
-                    p = source_option + '_' + 'CH' + ch + '_' + session_option + '.continuous'
+                    p = source_option + '_' + chprefix + ch + '_' + session_option + '.continuous'
                 try:
                     # pdb.set_trace()
                     data = loadContinuous(str(self.path.joinpath(p)))['data']
                     working = True
                     break
+                except ValueError:
+                    raise ValueError('Corrupt continuous file')
                 except:
                     continue
             if working:

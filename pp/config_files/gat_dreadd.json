@@ -11,6 +11,7 @@
     },
     "log_files": {
         "pre_kilosort": "/media/ruairi/SD_BCK/GAT_DREADD/logfiles/prekilosort.txt",
+        "kilosort": "/media/ruairi/SD_BCK/GAT_DREADD/logfiles/kilosort.txt",
         "post_kilosort": "/media/ruairi/SD_BCK/GAT_DREADD/logfiles/postkilosort.txt"
     },
     "recording_config": {
@@ -21,7 +22,7 @@
         ],
         "adc": [
             "temperature",
-            "eshock"
+            "eshock_ttl"
         ],
         "eeg": [
             "frontal_left",
