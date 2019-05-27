@@ -24,7 +24,6 @@ class ContinuousRecording:
     source_options = ['100', '120']
 
     def __init__(self, path, chan_map=None, name=None, verbose=False):
-        # TODO expand to be useful for one recording
         if isinstance(path, str):
             from pathlib import Path
             path = Path(path)
