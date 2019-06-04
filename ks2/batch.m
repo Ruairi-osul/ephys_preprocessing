@@ -1,10 +1,12 @@
 %% set paths
+addpath(genpath('/home/ruairi/repos/ephys_preprocessing/ks2'))
 
-config_file = '/home/ruairi/repos/eshock_analysis/ks2/ks_config.m';
-chan_map = '/home/ruairi/repos/eshock_analysis/ks2/chanMap_cam32.mat';
+config_file = 'ks_config.m';
+chan_map = 'chanMap_cam32.mat';
+
 %didnt_work = '/media/ruairi/big_bck/CITWAY/log_files/problems.txt';
 didnt_work = '/media/ruairi/big_bck/HAMILTON/log_files/problems.txt';
-addpath(genpath('/home/ruairi/repos/eshock_analysis/ks2'));
+
 %data_path = /media/ruairi/big_bck/HAMILTON/probe_dat_dir;
 data_path = '/media/ruairi/big_bck/HAMILTON/probe_dat_dir';
 %% load log files

@@ -88,6 +88,8 @@ class ContinuousRecording:
         self.data = data
 
     def common_average_reference(self):
+        '''Take the mean across all channels at each timepoint and 
+        subtract from the each channel'''
         if self.verbose:
             print('Referenceing all channels')
         reference = np.mean(self.data, 1)
