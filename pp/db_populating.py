@@ -7,6 +7,8 @@ import json
 import pandas as pd
 import csv
 from pathlib import Path
+import pdb
+from sqlalchemy.exc import IntegrityError
 
 
 def _get_options():
@@ -29,12 +31,14 @@ def _get_options():
 class DBInserter:
     # TODO add mode for deleted and reinserting
 
-    def __init__(self, constr, **kwargs, verbose=True):
+    def __init__(self, constr, **kwargs):
         self.eng = sa.create_engine(constr)
         self.metadata = sa.MetaData()
         for k, v in kwargs.items():
             setattr(self, k, v)
-        self.verbose = verbose
+
+        if 'verbose' not in kwargs:
+            self.verbose = True
 
     def add_experiment(self):
         '''Tables to update:
@@ -58,7 +62,22 @@ class DBInserter:
 
         experiments_data = self._format_experiments()
         with self.eng.connect() as con:
-            res = con.execute(insert(experiments_table), experiments_data)
+            try:
+
+                res = con.execute(insert(experiments_table), experiments_data)
+            except IntegrityError:
+                if self.on_duplicate == 'fail':
+                    raise ValueError(
+                        'Dubplicate entry found in fail mode when inserting experimental data')
+                elif self.on_duplicate == 'skip':
+                    raise ValueError(
+                        f'Error in logging {self.experiment_name} marked as todo but a db entry already exists')
+                elif self.on_duplicate == 'redo':
+                    con.execute(sa.delete(experiments_table).where(
+                        experiments_table.c.experiment_name == experiments_data['experiment_name']))
+                    res = con.execute(
+                        insert(experiments_table), experiments_data)
+
             self.experiment_id = res.inserted_primary_key[0]
 
         experimental_groups_data = self._format_experimental_groups()
@@ -96,14 +115,17 @@ class DBInserter:
     def _format_experimental_groups(self):
         assert hasattr(self, 'experiment_id')
         self.experimental_groups['experiment_id'] = self.experiment_id
-        return self.experimental_groups.drop('experiment_name', axis=1).pipe(
-            self.to_dict
-        )
+        return self.experimental_groups.drop(
+            'experiment_name', axis=1).rename(
+            {'group_id': 'group_code'}, axis=1).pipe(
+            self.to_dict)
 
     def _format_experimental_blocks(self):
         assert hasattr(self, 'experiment_id')
         self.experimental_blocks['experiment_id'] = self.experiment_id
-        return self.experimental_blocks
+        return pd.DataFrame(self.experimental_blocks, index=[1]).melt(id_vars='experiment_id', var_name='block_name', value_name='block_len').pipe(
+            self.to_dict
+        )
 
     def _format_recordings(self):
         pass
@@ -133,7 +155,7 @@ def load_experimental_data(config):
     experimental_data['probe_dat_dir'] = config['directories']['probe_dat_dir']
     experimental_data['experimental_groups'] = pd.read_csv(
         config['directories']['experimental_groups'])
-    experimental_data['experimental_blocks'] = config['recording_config']['block_lengths']
+    experimental_data['experimental_blocks'] = config['recording_config']['block_lenghts']
     return experimental_data
 
 
@@ -163,11 +185,16 @@ def load_extracted_data(root: Path, extracted_files=None):
 
 def main(db_str, config, on_duplicate, init=False):
 
+    with open(config) as f:
+        config = json.load(f)
+
     if init:
         experimental_data = load_experimental_data(config)
-        inserter = DBInserter(db_str, **experimental_data)
+        inserter = DBInserter(
+            db_str, on_duplicate=on_duplicate, **experimental_data)
         inserter.add_experiment()
 
+    pdb.set_trace()
     # get done recordings
     log_in_path = config['log_files']['postkilosort']
     log_out_path = config['log_files']['db_insersion']
@@ -194,11 +221,12 @@ def main(db_str, config, on_duplicate, init=False):
         extracted_data = load_extracted_data(
             Path(config['directories']['extracted']).joinpath(recording))
 
-        inserter = DBInserter(db_str, **extracted_data)
+        inserter = DBInserter(
+            db_str, on_duplicate=on_duplicate, **extracted_data)
         inserter.add_recording()
 
 
 if __name__ == "__main__":
-    db_str = 'mysql+pymysql://ruairi:@localhost/eshock'
+    db_str = 'mysql+pymysql://ruairi:@localhost/ephys'
     args = _get_options()
     main(db_str, args.config, args.on_duplicate, args.init)

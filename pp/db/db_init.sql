@@ -5,7 +5,7 @@ USE ephys;
 
 CREATE TABLE experiments(
     experiment_id INT AUTO_INCREMENT PRIMARY KEY,
-    experiment_name VARCHAR(100) NOT NULL,
+    experiment_name VARCHAR(100) UNIQUE,
     probe_dat_dir VARCHAR(300)
 );
 
@@ -16,17 +16,17 @@ CREATE TABLE experimental_blocks(
     FOREIGN KEY (experiment_id)
         REFERENCES experiments(experiment_id)
         ON DELETE CASCADE,
-    PRIMARY KEY (experiment_id, block_name)
+    PRIMARY KEY(experiment_id, block_name)
 );
 
 CREATE TABLE experimental_groups (
-    group_id INT,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     group_name VARCHAR(250),
+    group_code INT,
     experiment_id INT,
     FOREIGN KEY (experiment_id)
         REFERENCES experiments(experiment_id)
         ON DELETE CASCADE
-    PRIMARY KEY (group_id, experiment_id)
 );
 
 CREATE TABLE mice (
@@ -50,7 +50,7 @@ CREATE TABLE recordings (
     probe_fs INT,
     eeg_fs INT,
     FOREIGN KEY (group_id)
-        REFERENCES experimental_groups(group_id)
+        REFERENCES experimental_groups(id)
         ON DELETE CASCADE,
     FOREIGN KEY (mouse_id)
         REFERENCES mice(mouse_id)
@@ -63,7 +63,7 @@ CREATE TABLE recording_block_lenghts (
     FOREIGN KEY (recording_id)
         REFERENCES recordings(recording_id)
         ON DELETE CASCADE,
-    PRIMARY KEY (recording_id, block_name)
+    PRIMARY KEY(recording_id, block_name)
 );
 
 CREATE TABLE eeg (
@@ -74,7 +74,7 @@ CREATE TABLE eeg (
     FOREIGN KEY (recording_id)
         REFERENCES recordings(recording_id)
         ON DELETE CASCADE,
-    PRIMARY KEY (recording_id, chan_name, timepoint_sec)
+    PRIMARY KEY(recording_id, chan_name, timepoint_sec)
 );
 
 CREATE TABLE lfp (
@@ -85,16 +85,16 @@ CREATE TABLE lfp (
     FOREIGN KEY (recording_id)
         REFERENCES recordings(recording_id)
         ON DELETE CASCADE,
-    PRIMARY KEY (recording_id, chan_name, timepoint_sec)
+    PRIMARY KEY(recording_id, chan_name, timepoint_sec)
 );
 
 CREATE TABLE temperature (
     recording_id INT NOT NULL,
     timepoint_sec DOUBLE NOT NULL,
     temperature_value DOUBLE,
-    FOREIGN KEY (recordings_id)
+    FOREIGN KEY (recording_id)
         REFERENCES recordings(recording_id)
-        ON DELETE CASCADE 
+        ON DELETE CASCADE,
     PRIMARY KEY (recording_id, timepoint_sec)
 );
 
@@ -125,9 +125,9 @@ CREATE TABLE neuron_clustering (
     cluster VARCHAR(250),
     FOREIGN KEY (neuron_id)
         REFERENCES neurons(neuron_id)
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
     PRIMARY KEY (neuron_id, grouping_method)
-)
+);
 
 CREATE TABLE block_lengths (
     recording_id INT NOT NULL,
