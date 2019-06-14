@@ -25,6 +25,15 @@
             "post_chalshock",
             "way"
         ],
+        "block_lenghts": {
+            "pre": 30,
+            "baseshock": 10,
+            "post_baseshock": 10,
+            "chal": 20,
+            "chalshock": 10,
+            "post_chalshock": 10,
+            "way": 30
+        },
         "adc": [
             "eshock_ttl",
             "temperature"

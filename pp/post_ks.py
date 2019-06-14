@@ -51,7 +51,7 @@ def main(config_path, on_duplicate, log_mode):
         reader = csv.reader(f)
         kilosorted_recordings = [Path(row[0]) if Path(row[0]).is_absolute() else Path(
             experiment_params['directories']['probe_dat_dir']).joinpath(row[0])
-            for row in reader]
+            for row in reader if row]
 
     for i, recording in enumerate(continuous_mapper.values()):
         # has continuous_mapper been properly completed for this recording?

@@ -12,6 +12,7 @@ import pdb
 from pre_ks_classes import ContinuousRecording
 from pathlib import Path
 from collections import namedtuple
+import feather
 
 
 class SpikeSortedRecording:
@@ -161,20 +162,14 @@ class SpikeSortedRecording:
     def save(self):
         if self.verbose:
             print(f"Saving data to: {str(self.extracted)}")
-        np.save(self.extracted.joinpath('waveforms.npy'), self.waveforms) \
+
+        feather.write_dataframe(self.waveforms,  self.extracted.joinpath('waveforms.feather')) \
             if hasattr(self, 'waveforms') else None
-        np.save(self.extracted.joinpath('good_spike_times.npy'), self.good_spike_times) \
+        feather.write_dataframe(self.good_spike_times, self.extracted.joinpath('good_spike_times.feather')) \
             if hasattr(self, 'good_spike_times') else None
-        np.save(self.extracted.joinpath('mua_spike_times.npy'), self.mua_spike_times) \
+        feather.write_dataframe(self.mua_spike_times, self.extracted.joinpath('mua_spike_times.feather')) \
             if hasattr(self, 'mua_spike_times') else None
-        np.save(self.extracted.joinpath('trials.npy'), self.trials) \
+        feather.write_dataframe(self.trials, self.extracted.joinpath('trials.feather')) \
             if hasattr(self, 'trials') else None
-        np.save(self.extracted.joinpath('ifr.npy'), self.ifr) \
+        feather.write_dataframe(self.ifr, self.extracted.joinpath('ifr.feather')) \
             if hasattr(self, 'ifr') else None
-
-
-class DBInserter:
-    '''
-    Given a SpikeSortedRecording and an engine, can add to DB
-    '''
-    pass
