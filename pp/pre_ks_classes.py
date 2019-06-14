@@ -92,7 +92,7 @@ class ContinuousRecording:
         subtract from the each channel'''
         if self.verbose:
             print('Referenceing all channels')
-        reference = np.mean(self.data, 1)
+        reference = np.mean(self.data, 1)  # mean at each timepoint
         for i in range(self.data.shape[1]):
             self.data[:, i] = self.data[:, i] - reference
 

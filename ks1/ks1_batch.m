@@ -1,8 +1,8 @@
 %% set paths
-addpath(genpath('/home/ruairi/repos/ephys_preprocessing/ks2'))
+addpath(genpath('/home/ruairi/repos/ephys_preprocessing/ks1'))
 
-config_file = 'ks_config.m';
-chan_map = 'chanMap_cam32.mat';
+config_file = 'ks1_config.m';
+chan_map = 'chanMap.mat';
 
 %didnt_work = '/media/ruairi/big_bck/CITWAY/log_files/problems.txt';
 didnt_work = '/media/ruairi/big_bck/HAMILTON/log_files/problems.txt';
@@ -51,13 +51,14 @@ fclose(log_in_fileid);
 
 %% batch
 for i = 1:length(names)
-    todo = names{i};
-    disp(todo)
+    root = names{i};
+    datfile = files{i};
+    disp(root)
  
     present = 0;
     for j = 1:length(names_done)
         to_check = names_done{j};
-        if strcmp(todo, to_check)
+        if strcmp(root, to_check)
             present = 1;
         end
     end
@@ -65,14 +66,14 @@ for i = 1:length(names)
         continue 
     end
     try
-        kilosort2_fun(todo, config_file, chan_map);
+        ks1_fun(datfile, root, config_file, chan_map);
         fout = log_out;
     catch ME
         disp('error')
         fout = didnt_work;
     end
     time = datestr(now);
-    new_line = strjoin({todo, time, '\n'}, ',');
+    new_line = strjoin({root, time, '\n'}, ',');
     log_out_fileid = fopen(fout, 'a');
     fprintf(log_out_fileid, new_line);
     fclose(log_out_fileid);
