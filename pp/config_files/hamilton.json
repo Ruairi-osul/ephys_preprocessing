@@ -12,10 +12,12 @@
     "log_files": {
         "pre_kilosort": "/media/ruairi/big_bck/HAMILTON/log_files/pre_kilosort.txt",
         "kilosort": "/media/ruairi/big_bck/HAMILTON/log_files/kilosort.txt",
-        "post_kilosort": "/media/ruairi/big_bck/HAMILTON/log_files/postkilosort.txt"
+        "post_kilosort": "/media/ruairi/big_bck/HAMILTON/log_files/postkilosort.txt",
+        "db_inserted": "/media/ruairi/big_bck/HAMILTON/log_files/db_inserted.txt"
     },
     "recording_config": {
-        "fs": 30000,
+        "probe_fs": 30000,
+        "eeg_fs": 256,
         "blocks": [
             "pre",
             "baseshock",

@@ -21,7 +21,7 @@ class SpikeSortedRecording:
     '''
 
     def __init__(self, path: Path, extracted: Path, blocks: list, continuous_dirs: dict = None,
-                 nchans: int = 32, fs: int = 30000, max_intertrial_interval=2,
+                 nchans: int = 32, fs: int = 30000, max_intertrial_interval=2, recording_params=None,
                  verbose=True):
 
         self.verbose = verbose
@@ -32,6 +32,7 @@ class SpikeSortedRecording:
         self.extracted = self.extracted.joinpath(path.name)
         self.continuous_dirs = continuous_dirs
         self.blocks = blocks
+        self.recording_params = recording_params
 
         self.nchans = nchans
         self.fs = fs
@@ -127,6 +128,7 @@ class SpikeSortedRecording:
             self.discrete_events = discrete_events[num_skip:]
 
     def get_trials_set_lacencies(self, trial_start=0.5, max_intertrial_interval=2):
+        '''update good spike_times to include time relivate to last discrete event'''
         try:
             start_times = self.discrete_events - (trial_start * self.fs)
         except AttributeError:
@@ -147,18 +149,31 @@ class SpikeSortedRecording:
                           right_on='trial_number',
                           how='left')
             df['latency'] = df.spike_times.subtract(df.eshock_onset)
-            df.drop(['eshock_onset', 'trial_number', 'trial_onset'],
-                    axis=1, inplace=True)
-            pdb.set_trace()
+            df = df.drop(['eshock_onset', 'trial_number', 'trial_onset'],
+                         axis=1).pipe(
+                self._remove_intershock_trials, recording_params=self.recording_params
+            )
+
+    @staticmethod
+    def _remove_intershock_trials(df, recording_params):
+        '''set np.nan as value of trial for spikes occuring after the baseline
+        shock but before the second shock period'''
+        baseshock_end = recording_params['chal0']
+        chalshock_start = recording_params['chalshock0']
+        df.loc[(df['spike_times'] > baseshock_end) & (
+            df['spike_times'] < chalshock_start), 'trial'] = np.nan
+        return df
+
+    @staticmethod
+    def _get_trial(arroi, trial_starts, trial_numbers):
+        '''find closest trial. For each spike, only search 
+        the set of trials occuring before that spike'''
+        idx = np.searchsorted(trial_starts, arroi)
+        return pd.Series([int(trial_numbers[i-1]) if 0 < i < len(trial_numbers) else np.nan for i in idx])
 
     def set_analog_chan(self):
         # TODO for temperature
         pass
-
-    @staticmethod
-    def _get_trial(arroi, trial_starts, trial_numbers):
-        idx = np.searchsorted(trial_starts, arroi)
-        return pd.Series([int(trial_numbers[i-1]) if 0 < i < len(trial_numbers) else np.nan for i in idx])
 
     def save(self):
         if self.verbose:

@@ -12,15 +12,14 @@ p = '/media/ruairi/big_bck/HAMILTON/extracted/hamilton_09/recordings_params.json
 with open(p) as f:
     params = json.load(f)
 
-pre = params['pre0_samples']
-baseshock = params['baseshock0_samples']
-post_baseshock = params['post_baseshock0_samples']
-chal = params['chal0_samples']
-chalshock = params['chalshock0_samples']
-post_chalshock = params['post_chalshock0_samples']
-way = params['way0_samples']
+baseshock_start = params['baseshock0']
+baseshock_end = params['chal0']
+chalshock_start = params['chalshock0']
+chalshock_end = params['post_chalshock0']
 
-times = np.array([pre, baseshock, post_baseshock, chal, chalshock,
-                  post_chalshock, way])
+trials = feather.read_dataframe(
+    '/media/ruairi/big_bck/HAMILTON/extracted/hamilton_09/trials.feather')
 
+df.loc[(df['spike_times'] > baseshock_end) & (
+    df['spike_times'] < chalshock_start), 'trial'] = np.nan
 pdb.set_trace()

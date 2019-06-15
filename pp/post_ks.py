@@ -83,17 +83,21 @@ def main(config_path, on_duplicate, log_mode):
                            if d is not None else None
                            for block_name, d in recording['continuous_dirs'].items()}
 
-        eshock_chan = recording['adc_chans']['eshock_ttl'] \
-            if ('adc_chans' in recording) and ('eshock_ttl' in recording['adc_chans']) \
-            else None
-        temperature_chan = recording['adc_chans']['temperature'] \
-            if ('adc_chans' in recording) and ('temperature' in recording['adc_chans']) \
-            else None
+        recording_params = Path(
+            experiment_params['directories']['extracted']
+        ).joinpath(recording['name']).joinpath('recordings_params.json')
+        with recording_params.open() as f:
+            recording_params = json.load(f)
+
+        eshock_chan = recording['adc_chans']['eshock_ttl'] if (
+            'adc_chans' in recording) and ('eshock_ttl' in recording['adc_chans']) else None
+        temperature_chan = recording['adc_chans']['temperature'] if (
+            'adc_chans' in recording) and ('temperature' in recording['adc_chans']) else None
 
         processor = SpikeSortedRecording(path=kilosort_path,
                                          extracted=experiment_params['directories']['extracted'],
                                          continuous_dirs=continuous_dirs,
-                                         blocks=experiment_params['recording_config']['blocks'])
+                                         blocks=experiment_params['recording_config']['blocks'], recording_params=recording_params)
 
         if len(processor.good_clusters) > 0:
             processor.set_waveforms()

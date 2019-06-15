@@ -39,6 +39,11 @@ class DBInserter:
         if 'verbose' not in kwargs:
             self.verbose = True
 
+        self.experiments_table = sa.Table(
+            'experiments', self.metadata, auto_load=True, autoload_with=self.eng)
+        self.experimental_groups_table = sa.Table(
+            'experimental_groups', self.metadata, autoload=True, autoload_with=self.eng)
+
     def add_experiment(self):
         '''Tables to update:
                 experiments
@@ -52,10 +57,6 @@ class DBInserter:
         if self.verbose:
             print(f'Adding experiment: {self.experiment_name}')
 
-        experiments_table = sa.Table(
-            'experiments', self.metadata, auto_load=True, autoload_with=self.eng)
-        experimental_groups_table = sa.Table(
-            'experimental_groups', self.metadata, autoload=True, autoload_with=self.eng)
         experimental_blocks_table = sa.Table(
             'experimental_blocks', self.metadata, autoload=True, autoload_with=self.eng)
 
@@ -63,7 +64,8 @@ class DBInserter:
         with self.eng.connect() as con:
             try:
 
-                res = con.execute(insert(experiments_table), experiments_data)
+                res = con.execute(
+                    insert(self.experiments_table), experiments_data)
             except IntegrityError:
                 if self.on_duplicate == 'fail':
                     raise ValueError(
@@ -72,17 +74,17 @@ class DBInserter:
                     raise ValueError(
                         f'Error in logging {self.experiment_name} marked as todo but a db entry already exists')
                 elif self.on_duplicate == 'redo':
-                    con.execute(sa.delete(experiments_table).where(
-                        experiments_table.c.experiment_name == experiments_data['experiment_name']))
+                    con.execute(sa.delete(self.experiments_table).where(
+                        self.experiments_table.c.experiment_name == experiments_data['experiment_name']))
                     res = con.execute(
-                        insert(experiments_table), experiments_data)
+                        insert(self.experiments_table), experiments_data)
 
             self.experiment_id = res.inserted_primary_key[0]
 
         experimental_groups_data = self._format_experimental_groups()
         experimental_blocks_data = self._format_experimental_blocks()
         with self.eng.connect() as con:
-            con.execute(insert(experimental_groups_table),
+            con.execute(insert(self.experimental_groups_table),
                         experimental_groups_data)
             con.execute(insert(experimental_blocks_table),
                         experimental_blocks_data)
@@ -101,6 +103,9 @@ class DBInserter:
         # loop over options
 
         # check if
+        recordings_table = sa.Table(
+            'recordings', self.metadata, auto_load=True, autoload_with=self.eng)
+        recordings_data = self._format_recordings()
         pass
 
     @staticmethod
@@ -122,12 +127,45 @@ class DBInserter:
     def _format_experimental_blocks(self):
         assert hasattr(self, 'experiment_id')
         self.experimental_blocks['experiment_id'] = self.experiment_id
-        return pd.DataFrame(self.experimental_blocks, index=[1]).melt(id_vars='experiment_id', var_name='block_name', value_name='block_len').pipe(
+        return pd.DataFrame(
+            self.experimental_blocks, index=[1]
+        ).melt(
+            id_vars='experiment_id', var_name='block_name',
+            value_name='block_len'
+        ).pipe(
             self.to_dict
         )
 
     def _format_recordings(self):
-        pass
+        # TODO add checks to see if values have been defined
+        assert self.recordings_params
+        recording = {}
+        recording['recording_name'] = self.recordings_params['name']
+        recording['recording_date'] = self.recordings_params['date']
+        recording['start_time'] = self.recordings_params['start_time']
+        recording['eeg_fs'] = self.eeg_fs
+        recording['probe_fs'] = self.probe_fs
+        recording['dat_filename'] = str(Path(self.probe_dat_dir
+                                             ).joinpath(self.recordings_params['name']
+                                                        ).joinpath(''.join([self.recordings_params['name'],
+                                                                            '.dat']
+                                                                           )))
+        stmt = sa.select([self.experimental_groups_table.c.id]
+                         ).select_from(
+                             self.experimental_groups_table.join(
+                                 self.experiments_table,
+                                 self.experiments_table.c.experiment_id == self.experimental_groups_table.c.experiment_id
+                             )).where(
+                                 sa.and_(
+                                     self.experimental_groups_table.c.group_code == self.recordings_params[
+                                         'group_id'],
+                                     self.experiments_table.c.experiment_name == self.recordings_params[
+                                         'exp_name']
+                                 ))
+
+        with self.eng.connect() as con:
+            recording['group_id'] = con.execute(stmt).fetchone()[0]
+        return recording
 
     def _format_neurons(self):
         pass
@@ -161,20 +199,21 @@ def load_experimental_data(config):
 def load_extracted_data(root: Path, extracted_files=None):
     if extracted_files is None:
         extracted_files = ['good_spike_times.feather', 'ifr.feather',
-                           'mua_spike_times.feather', 'recording_params.json',
+                           'mua_spike_times.feather', 'recordings_params.json',
                            'trials.feather', 'waveforms.feather']
 
     extracted_files = list(
-        map(lambda x: str(root.joinpath(x)), extracted_files))
+        map(lambda x: root.joinpath(x), extracted_files))
 
     extracted_data = {}
     for file in extracted_files:
         try:
-            if file.split('.')[-1] == '.feather':
-                extracted_data[file.split('.')[0]] = feather.read_dataframe(f)
-            elif file.split('.')[-1] == '.json':
-                with open(file) as f:
-                    extracted_data[file.split('.')[0]] = json.load(f)
+            if file.suffix == '.feather':
+                extracted_data[file.name.split(
+                    '.')[0]] = feather.read_dataframe(file)
+            elif file.suffix == '.json':
+                with file.open() as f:
+                    extracted_data[file.name.split('.')[0]] = json.load(f)
 
         except FileNotFoundError as e:
             print('Error during file import')
@@ -193,10 +232,9 @@ def main(db_str, config, on_duplicate, init=False):
             db_str, on_duplicate=on_duplicate, **experimental_data)
         inserter.add_experiment()
 
-    pdb.set_trace()
     # get done recordings
-    log_in_path = config['log_files']['postkilosort']
-    log_out_path = config['log_files']['db_insersion']
+    log_in_path = config['log_files']['post_kilosort']
+    log_out_path = config['log_files']['db_inserted']
 
     with open(log_in_path, 'r') as f:
         reader = csv.reader(f)
@@ -221,7 +259,11 @@ def main(db_str, config, on_duplicate, init=False):
             Path(config['directories']['extracted']).joinpath(recording))
 
         inserter = DBInserter(
-            db_str, on_duplicate=on_duplicate, **extracted_data)
+            db_str, on_duplicate=on_duplicate,
+            probe_dat_dir=config['directories']['probe_dat_dir'],
+            eeg_fs=config['recording_config']['eeg_fs'],
+            probe_fs=config['recording_config']['probe_fs'],
+            **extracted_data)
         inserter.add_recording()
 
 
