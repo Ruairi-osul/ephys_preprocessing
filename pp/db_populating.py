@@ -106,6 +106,25 @@ class DBInserter:
         recordings_table = sa.Table(
             'recordings', self.metadata, auto_load=True, autoload_with=self.eng)
         recordings_data = self._format_recordings()
+        with self.eng.connect() as con:
+            try:
+                res = con.execute(insert(recordings_table, recordings_data))
+            except IntegrityError:
+                if self.on_duplicate == 'fail':
+                    raise ValueError(
+                        'Dubplicate entry found in fail mode when inserting recording data')
+                elif self.on_duplicate == 'skip':
+                    raise ValueError(
+                        f'Error in logging {self.recordings_params['name']} marked as todo but a db entry already exists')
+                elif self.on_duplicate == 'redo':
+                    con.execute(sa.delete(recordings_table).where(
+                        self.recordings_table.c.recording_name == recordings_data['recording_name']))
+                    res = con.execute(
+                        insert(recordings_table), recordings_data)
+
+            self.recording_id = res.inserted_primary_key[0]
+        pass
+
         pass
 
     @staticmethod
