@@ -7,6 +7,7 @@ from pprint import pprint as pp
 import re
 import datetime
 import pdb
+from collections import OrderedDict
 
 
 class ContinuousRecording:
@@ -137,7 +138,7 @@ class PreKilosortPreprocessor:
         self.tmp_dir = tmp_dir
         self.dat_dir = dat_dir
         self.out_file = dat_dir.joinpath(self.name + '.dat')
-        self.blocklenghts = {}
+        self.blocklenghts = OrderedDict()
         self.tmp_files = []
         self.start_time = self._get_start_time()
 
@@ -169,7 +170,7 @@ class PreKilosortPreprocessor:
                 if block_num == 0:
                     raise IOError(
                         f'Error preprocessing {self.name}\nCould not find {block_name}')
-                self.blocklenghts[block_name + '0_samples'] = None
+                self.blocklenghts[block_name + '0_samples'] = 0
                 continue
             if not isinstance(paths, list):
                 paths = [paths]
@@ -207,7 +208,7 @@ class PreKilosortPreprocessor:
                 if block_num == 0:
                     raise IOError(
                         f'Error preprocessing {self.name}\nCould not find {block_name}')
-                self.blocklenghts[block_name + '0_samples'] = None
+                self.blocklenghts[block_name + '0_samples'] = 0
                 continue
             if not isinstance(paths, list):
                 paths = [paths]
@@ -226,13 +227,20 @@ class PreKilosortPreprocessor:
         end_idx = re.search(time_pattern, first_block_file).end()
         return first_block_file[start_idx + 1: end_idx - 1]
 
+    def _refactor_blocklengths(self):
+        vals = np.insert(np.cumsum(list(self.blocklenghts.values())), 0, 0)
+        vals = list(map(lambda x: int(x), vals))
+        keys = [x.split('_samp')[0] for x in self.blocklenghts.keys()]
+        keys.append('end')
+        self.blocklenghts = dict(zip(keys, vals))
+
     def create_recordings_params(self):
-        # TODO add start time
         params_out = {"name": self.name,
                       "exp_name": self.experiment_name,
                       "group_id": self.group_id,
                       "date": self.date,
                       "start_time": self.start_time}
+        self._refactor_blocklengths()
         params_out.update(self.blocklenghts)
         fname = self.extracted.joinpath('recordings_params.json')
         with fname.open('w') as f:

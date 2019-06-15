@@ -149,6 +149,7 @@ class SpikeSortedRecording:
             df['latency'] = df.spike_times.subtract(df.eshock_onset)
             df.drop(['eshock_onset', 'trial_number', 'trial_onset'],
                     axis=1, inplace=True)
+            pdb.set_trace()
 
     def set_analog_chan(self):
         # TODO for temperature

@@ -29,7 +29,6 @@ def _get_options():
 
 
 class DBInserter:
-    # TODO add mode for deleted and reinserting
 
     def __init__(self, constr, **kwargs):
         self.eng = sa.create_engine(constr)
