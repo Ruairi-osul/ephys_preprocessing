@@ -139,6 +139,8 @@ CREATE TABLE block_lengths (
 CREATE TABLE good_spike_times (
     neuron_id INT NOT NULL,
     spike_times BIGINT NOT NULL,
+    trial INT,
+    latency INT,
     FOREIGN KEY (neuron_id)
         REFERENCES neurons(neuron_id)
         ON DELETE CASCADE,
@@ -148,10 +150,22 @@ CREATE TABLE good_spike_times (
 CREATE TABLE mua_spike_times (
     mua_id INT NOT NULL,
     spike_times BIGINT NOT NULL,
+    trial INT,
+    latency INT,
     FOREIGN KEY (mua_id)
         REFERENCES multi_units(mua_id)
         ON DELETE CASCADE,
     PRIMARY KEY(mua_id, spike_times)  
+);
+
+CREATE TABLE ifr (
+    neuron_id INT NOT NULL,
+    timepoint_sec DOUBLE,
+    firing_rate DOUBLE,
+    FOREIGN KEY (neuron_id)
+        REFERENCES neurons(neuron_id)
+        ON DELETE CASCADE,
+    PRIMARY KEY (neuron_id, timepoint_sec)
 );
 
 CREATE TABLE waveform_timepoints (
@@ -166,9 +180,11 @@ CREATE TABLE waveform_timepoints (
 
 CREATE TABLE eshock_events (
     recording_id INT NOT NULL,
-    event_sample INT NOT NULL,
+    trial_number INT NOT NULL, 
+    eshock_onset BIGINT NOT NULL,
+    trial_onset BIGINT NOT NULL,
     FOREIGN KEY (recording_id)
         REFERENCES recordings(recording_id)
         ON DELETE CASCADE,
-    PRIMARY KEY(recording_id, event_sample)
+    PRIMARY KEY(recording_id, trial_number)
 );

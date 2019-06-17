@@ -137,22 +137,26 @@ class SpikeSortedRecording:
                                     'eshock_onset': self.discrete_events,
                                     'trial_onset': start_times})
 
-        for df in [self.good_spike_times, self.mua_spike_times]:
+        for name, df in zip(['good_spike_times', 'mua_spike_times'], [self.good_spike_times, self.mua_spike_times]):
             if len(df) == 0:
                 continue
             g = df.groupby('cluster_id')['spike_times']
             df['trial'] = g.transform(self._get_trial,
                                       trial_starts=self.trials['trial_onset'].values,
                                       trial_numbers=self.trials['trial_number'].values)
-            df = pd.merge(df, self.trials,
+
+            df = df.merge(right=self.trials,
                           left_on='trial',
                           right_on='trial_number',
-                          how='left')
+                          how='left', copy=False)
+
             df['latency'] = df.spike_times.subtract(df.eshock_onset)
+
             df = df.drop(['eshock_onset', 'trial_number', 'trial_onset'],
                          axis=1).pipe(
                 self._remove_intershock_trials, recording_params=self.recording_params
             )
+            setattr(self, name, df)
 
     @staticmethod
     def _remove_intershock_trials(df, recording_params):
@@ -166,7 +170,7 @@ class SpikeSortedRecording:
 
     @staticmethod
     def _get_trial(arroi, trial_starts, trial_numbers):
-        '''find closest trial. For each spike, only search 
+        '''find closest trial. For each spike, only search
         the set of trials occuring before that spike'''
         idx = np.searchsorted(trial_starts, arroi)
         return pd.Series([int(trial_numbers[i-1]) if 0 < i < len(trial_numbers) else np.nan for i in idx])
@@ -178,9 +182,10 @@ class SpikeSortedRecording:
     def save(self):
         if self.verbose:
             print(f"Saving data to: {str(self.extracted)}")
-
         feather.write_dataframe(self.waveforms,  self.extracted.joinpath('waveforms.feather')) \
             if hasattr(self, 'waveforms') else None
+        feather.write_dataframe(self.chans,  self.extracted.joinpath('chans.feather')) \
+            if hasattr(self, 'chans') else None
         feather.write_dataframe(self.good_spike_times, self.extracted.joinpath('good_spike_times.feather')) \
             if hasattr(self, 'good_spike_times') else None
         feather.write_dataframe(self.mua_spike_times, self.extracted.joinpath('mua_spike_times.feather')) \

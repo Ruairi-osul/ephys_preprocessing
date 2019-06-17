@@ -9,6 +9,8 @@ import csv
 from pathlib import Path
 import pdb
 from sqlalchemy.exc import IntegrityError
+import numpy as np
+import datetime
 
 
 def _get_options():
@@ -31,7 +33,7 @@ def _get_options():
 class DBInserter:
 
     def __init__(self, constr, **kwargs):
-        self.eng = sa.create_engine(constr)
+        self.eng = sa.create_engine(constr, pool_size=40, max_overflow=40)
         self.metadata = sa.MetaData()
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -40,7 +42,7 @@ class DBInserter:
             self.verbose = True
 
         self.experiments_table = sa.Table(
-            'experiments', self.metadata, auto_load=True, autoload_with=self.eng)
+            'experiments', self.metadata, autoload=True, autoload_with=self.eng)
         self.experimental_groups_table = sa.Table(
             'experimental_groups', self.metadata, autoload=True, autoload_with=self.eng)
 
@@ -50,7 +52,8 @@ class DBInserter:
                 experimental_groups
                 experimental_blocks
         '''
-        if not (hasattr(self, 'experiment_name') and hasattr(self, 'experimental_groups') and hasattr(self, 'experimental_blocks') and hasattr(self, 'probe_dat_dir')):
+        if not (hasattr(self, 'experiment_name') and hasattr(self, 'experimental_groups')
+                and hasattr(self, 'experimental_blocks') and hasattr(self, 'probe_dat_dir')):
             raise ValueError(
                 'Required data not availible for initialising experiment')
 
@@ -61,33 +64,18 @@ class DBInserter:
             'experimental_blocks', self.metadata, autoload=True, autoload_with=self.eng)
 
         experiments_data = self._format_experiments()
-        with self.eng.connect() as con:
-            try:
-
-                res = con.execute(
-                    insert(self.experiments_table), experiments_data)
-            except IntegrityError:
-                if self.on_duplicate == 'fail':
-                    raise ValueError(
-                        'Dubplicate entry found in fail mode when inserting experimental data')
-                elif self.on_duplicate == 'skip':
-                    raise ValueError(
-                        f'Error in logging {self.experiment_name} marked as todo but a db entry already exists')
-                elif self.on_duplicate == 'redo':
-                    con.execute(sa.delete(self.experiments_table).where(
-                        self.experiments_table.c.experiment_name == experiments_data['experiment_name']))
-                    res = con.execute(
-                        insert(self.experiments_table), experiments_data)
-
-            self.experiment_id = res.inserted_primary_key[0]
+        res = self.add_table(engine=self.eng, table=self.experiments_table,
+                             data=experiments_data, on_duplicate=self.on_duplicate,
+                             identidier_col=self.experiments_table.c.experiment_name,
+                             identifier_data=experiments_data['experiment_name'])
+        self.experiment_id = res.inserted_primary_key[0]
 
         experimental_groups_data = self._format_experimental_groups()
         experimental_blocks_data = self._format_experimental_blocks()
-        with self.eng.connect() as con:
-            con.execute(insert(self.experimental_groups_table),
-                        experimental_groups_data)
-            con.execute(insert(experimental_blocks_table),
-                        experimental_blocks_data)
+        _ = self.add_table(engine=self.eng, table=self.experimental_groups_table,
+                           data=experimental_groups_data)
+        _ = self.add_table(engine=self.eng, table=experimental_blocks_table,
+                           data=experimental_blocks_data)
 
     def add_recording(self):
         '''Tables to update:
@@ -100,36 +88,139 @@ class DBInserter:
                 eeg
                 lfp
         '''
-        # loop over options
+        if self.verbose:
+            print(f'adding recording: {self.recordings_params["name"]}')
 
-        # check if
         recordings_table = sa.Table(
-            'recordings', self.metadata, auto_load=True, autoload_with=self.eng)
-        recordings_data = self._format_recordings()
-        with self.eng.connect() as con:
-            try:
-                res = con.execute(insert(recordings_table, recordings_data))
-            except IntegrityError:
-                if self.on_duplicate == 'fail':
-                    raise ValueError(
-                        'Dubplicate entry found in fail mode when inserting recording data')
-                elif self.on_duplicate == 'skip':
-                    raise ValueError(
-                        f'Error in logging {self.recordings_params['name']} marked as todo but a db entry already exists')
-                elif self.on_duplicate == 'redo':
-                    con.execute(sa.delete(recordings_table).where(
-                        self.recordings_table.c.recording_name == recordings_data['recording_name']))
-                    res = con.execute(
-                        insert(recordings_table), recordings_data)
+            'recordings', self.metadata, autoload=True, autoload_with=self.eng)
+        neurons_table = sa.Table(
+            'neurons', self.metadata, autoload=True, autoload_with=self.eng)
+        good_spike_times_table = sa.Table(
+            'good_spike_times', self.metadata, autoload=True, autoload_with=self.eng)
+        waveforms_table = sa.Table(
+            'waveform_timepoints', self.metadata, autoload=True, autoload_with=self.eng)
+        multi_units_table = sa.Table(
+            'multi_units', self.metadata, autoload=True, autoload_with=self.eng)
+        mua_spike_times_table = sa.Table(
+            'mua_spike_times', self.metadata, autoload=True, autoload_with=self.eng)
+        ifr_table = sa.Table(
+            'ifr', self.metadata, autoload=True, autoload_with=self.eng)
+        eshock_table = sa.Table(
+            'eshock_events', self.metadata, autoload=True, autoload_with=self.eng)
 
+        try:
+            recordings_data = self._format_recordings()
+            res = self.add_table(engine=self.eng, table=recordings_table,
+                                 data=recordings_data,
+                                 on_duplicate=self.on_duplicate, identidier_col=recordings_table.c.recording_name,
+                                 identifier_data=recordings_data['recording_name'])
             self.recording_id = res.inserted_primary_key[0]
-        pass
+        except AssertionError:
+            raise ValueError(f'Insufficient preprocessing for insertion for'
+                             f'recording: \t{self.recordings_params["name"]}')
 
-        pass
+        try:
+            neurons_data = self._format_neurons()
+            assert neurons_data
+            self.add_table(engine=self.eng, table=neurons_table, data=neurons_data,
+                           on_duplicate=self.on_duplicate)
+
+            good_spiketimes_data = self._format_good_spiketimes(neurons_table)
+            assert good_spiketimes_data
+            self.add_table(engine=self.eng, table=good_spike_times_table, data=good_spiketimes_data,
+                           on_duplicate=self.on_duplicate)
+        except AssertionError:
+            print('Single unit data not availible for recording: '
+                  f'\t{self.recordings_params["name"]}')
+            pass
+
+        try:
+            waveforms_data = self._format_waveforms(neurons_table)
+            self.add_table(engine=self.eng, table=waveforms_table, data=waveforms_data,
+                           on_duplicate=self.on_duplicate)
+        except AssertionError:
+            print(
+                f'No waveform data availible: recording'
+                f'\t{self.recordings_params["name"]}')
+            pass
+
+        try:
+            mua_data = self._format_multiunits()
+            assert mua_data
+            self.add_table(engine=self.eng, table=multi_units_table,
+                           data=mua_data, on_duplicate=self.on_duplicate)
+
+            mua_spike_times = self._format_mua_spiketimes(multi_units_table)
+            self.add_table(engine=self.eng, table=mua_spike_times_table,
+                           data=mua_spike_times, on_duplicate=self.on_duplicate)
+        except AssertionError:
+            print('No multi unit data availible: recording'
+                  f'\t{self.recordings_params["name"]}')
+            pass
+
+        try:
+            ifr_data = self._format_ifr(neurons_table)
+            assert ifr_data
+            self.add_table(engine=self.eng, table=ifr_table,
+                           data=ifr_data, on_duplicate=self.on_duplicate)
+        except AssertionError:
+            print('No ifr data availible: recording'
+                  f'\t{self.recordings_params["name"]}')
+            pass
+
+        try:
+
+            eshock_data = self._format_eshock_events()
+            assert eshock_data
+            self.add_table(engine=self.eng, table=eshock_table,
+                           data=eshock_data, on_duplicate=self.on_duplicate)
+        except AssertionError:
+            print('No trial data availible: recording'
+                  f'\t{self.recordings_params["name"]}')
+            pass
+
+    @staticmethod
+    def get_ids(engine, new_data, ref_table,
+                ref_table_contraint_col, ref_table_contraint_data,
+                merge_col, id_col):
+        with engine.connect() as con:
+            ref_data = con.execute(sa.select([ref_table]
+                                             ).where(
+                                                 ref_table_contraint_col == ref_table_contraint_data)).fetchall()
+        ref_data = pd.DataFrame(ref_data, columns=ref_data[0].keys())[
+            [id_col, merge_col]]
+        res = pd.merge(new_data, ref_data, on=merge_col)
+        assert len(res) == len(new_data), 'error finding ids'
+        return res
+
+    @staticmethod
+    def add_table(engine, table, data, on_duplicate=None,
+                  identidier_col=None, identifier_data=None):
+        '''identifier col is the column to use to check if the data has already been added
+        identifier data is the value in data used to identify whether data is already present in the
+        db'''
+        with engine.connect() as con:
+            try:
+                res = con.execute(insert(table, data))
+            except IntegrityError:
+                if (on_duplicate == 'fail') or (on_duplicate == 'skip'):
+                    raise ValueError(
+                        f'Dubplicate entry found in {on_duplicate} mode when inserting')
+                elif on_duplicate == 'redo':
+                    assert (identidier_col is not None) and (
+                        identifier_data is not None)
+                    con.execute(sa.delete(table).where(
+                        identidier_col == identifier_data))
+                res = con.execute(insert(table), data)
+        return res
 
     @staticmethod
     def to_dict(df):
         return list(df.to_dict('index').values())
+
+    @staticmethod
+    def nan_to_null(df):
+        return df.where(pd.notnull(df), None)
 
     def _format_experiments(self):
         return {'experiment_name': self.experiment_name,
@@ -160,8 +251,10 @@ class DBInserter:
         assert self.recordings_params
         recording = {}
         recording['recording_name'] = self.recordings_params['name']
-        recording['recording_date'] = self.recordings_params['date']
-        recording['start_time'] = self.recordings_params['start_time']
+        recording['recording_date'] = datetime.datetime.strptime(
+            self.recordings_params['date'], '%Y-%m-%d').date()
+        recording['start_time'] = datetime.datetime.strptime(
+            self.recordings_params['start_time'], '%H-%M-%S').time()
         recording['eeg_fs'] = self.eeg_fs
         recording['probe_fs'] = self.probe_fs
         recording['dat_filename'] = str(Path(self.probe_dat_dir
@@ -171,29 +264,101 @@ class DBInserter:
                                                                            )))
         stmt = sa.select([self.experimental_groups_table.c.id]
                          ).select_from(
-                             self.experimental_groups_table.join(
-                                 self.experiments_table,
-                                 self.experiments_table.c.experiment_id == self.experimental_groups_table.c.experiment_id
-                             )).where(
-                                 sa.and_(
-                                     self.experimental_groups_table.c.group_code == self.recordings_params[
-                                         'group_id'],
-                                     self.experiments_table.c.experiment_name == self.recordings_params[
-                                         'exp_name']
-                                 ))
+            self.experimental_groups_table.join(
+                self.experiments_table,
+                self.experiments_table.c.experiment_id == self.experimental_groups_table.c.experiment_id
+            )).where(
+            sa.and_(
+                self.experimental_groups_table.c.group_code == self.recordings_params[
+                    'group_id'],
+                self.experiments_table.c.experiment_name == self.recordings_params[
+                    'exp_name']
+            ))
 
         with self.eng.connect() as con:
             recording['group_id'] = con.execute(stmt).fetchone()[0]
         return recording
 
     def _format_neurons(self):
-        pass
+        assert hasattr(self, 'chans') and hasattr(self, 'recording_id')
+        return pd.DataFrame(data={'cluster_id': self.chans['cluster_id'].values,
+                                  'max_amp_channel': self.chans['channel'].values,
+                                  'excluded': np.nan,
+                                  'recording_id': self.recording_id}
+                            ).pipe(
+                                self.nan_to_null).pipe(
+            self.to_dict
+        )
 
-    def _format_spiketimes(self):
-        pass
+    def _format_good_spiketimes(self, neurons_table):
+        assert hasattr(self, 'good_spike_times')
+        return self.get_ids(engine=self.eng, new_data=self.good_spike_times,
+                            ref_table=neurons_table,
+                            ref_table_contraint_col=neurons_table.c.recording_id,
+                            ref_table_contraint_data=self.recording_id,
+                            merge_col='cluster_id', id_col='neuron_id'
+                            ).pipe(
+                                lambda x: x.drop('cluster_id', axis=1)
+        ).drop_duplicates().pipe(
+            self.nan_to_null
+        ).pipe(self.to_dict)
 
-    def _format_waveforms(self):
-        pass
+    def _format_waveforms(self, neurons_table):
+        assert hasattr(self, 'waveforms')
+        return self.get_ids(engine=self.eng, new_data=self.waveforms,
+                            ref_table=neurons_table,
+                            ref_table_contraint_col=neurons_table.c.recording_id,
+                            ref_table_contraint_data=self.recording_id,
+                            merge_col='cluster_id', id_col='neuron_id'
+                            ).pipe(
+                                lambda x: x.drop('cluster_id', axis=1)
+        ).pipe(
+            self.nan_to_null
+        ).pipe(self.to_dict)
+
+    def _format_multiunits(self):
+        assert hasattr(self, 'recording_id') and hasattr(
+            self, 'mua_spike_times')
+        return pd.DataFrame(data={'cluster_id': self.mua_spike_times['cluster_id'].unique(),
+                                  'recording_id': self.recording_id}
+                            ).pipe(self.to_dict)
+
+    def _format_mua_spiketimes(self, mua_table):
+        assert hasattr(self, 'recording_id') and hasattr(
+            self, 'mua_spike_times')
+        return self.get_ids(engine=self.eng, new_data=self.mua_spike_times,
+                            ref_table=mua_table,
+                            ref_table_contraint_col=mua_table.c.recording_id,
+                            ref_table_contraint_data=self.recording_id,
+                            merge_col='cluster_id', id_col='mua_id'
+                            ).pipe(
+                                lambda x: x.drop('cluster_id', axis=1)
+        ).drop_duplicates().pipe(
+            self.nan_to_null
+        ).pipe(self.to_dict)
+
+    def _format_ifr(self, neurons_table):
+        assert hasattr(self, 'ifr')
+        data = self.ifr.rename(axis='columns', mapper={
+                               'time': 'timepoint_sec'})
+        return self.get_ids(engine=self.eng, new_data=data,
+                            ref_table=neurons_table,
+                            ref_table_contraint_col=neurons_table.c.recording_id,
+                            ref_table_contraint_data=self.recording_id,
+                            merge_col='cluster_id', id_col='neuron_id'
+                            ).pipe(
+                                lambda x: x.drop('cluster_id', axis=1)
+        ).pipe(
+            self.nan_to_null
+        ).pipe(self.to_dict)
+
+    def _format_eshock_events(self):
+        assert hasattr(self, 'recording_id')
+        assert hasattr(self, 'recording_id')
+        assert hasattr(self, 'trials')
+        data = self.trials
+        data['recording_id'] = self.recording_id
+        return data.pipe(self.nan_to_null).pipe(self.to_dict)
 
     def _format_temperature(self):
         pass
@@ -219,7 +384,7 @@ def load_extracted_data(root: Path, extracted_files=None):
     if extracted_files is None:
         extracted_files = ['good_spike_times.feather', 'ifr.feather',
                            'mua_spike_times.feather', 'recordings_params.json',
-                           'trials.feather', 'waveforms.feather']
+                           'trials.feather', 'waveforms.feather', 'chans.feather']
 
     extracted_files = list(
         map(lambda x: root.joinpath(x), extracted_files))
@@ -234,9 +399,9 @@ def load_extracted_data(root: Path, extracted_files=None):
                 with file.open() as f:
                     extracted_data[file.name.split('.')[0]] = json.load(f)
 
-        except FileNotFoundError as e:
-            print('Error during file import')
-            raise e
+        except FileNotFoundError:
+            print(f'Error during file import: {str(file)}')
+            pass
     return extracted_data
 
 
