@@ -162,6 +162,9 @@ class SpikeSortedRecording:
     def _remove_intershock_trials(df, recording_params):
         '''set np.nan as value of trial for spikes occuring after the baseline
         shock but before the second shock period'''
+        # TODO make this work for non hamilton-specific recordings
+        if 'chal0' not in recording_params:
+            return df
         baseshock_end = recording_params['chal0']
         chalshock_start = recording_params['chalshock0']
         df.loc[(df['spike_times'] > baseshock_end) & (

@@ -1,0 +1,42 @@
+Adding experiment: hamilton
+adding recording: hamilton_10
+adding recording: hamilton_03
+adding recording: hamilton_04
+adding recording: hamilton_09
+adding recording: hamilton_01
+adding recording: hamilton_02
+adding recording: hamilton_11
+adding recording: hamilton_12
+adding recording: hamilton_13
+adding recording: hamilton_14
+adding recording: hamilton_21
+No multi unit data availible: recording	hamilton_21
+adding recording: hamilton_22
+adding recording: hamilton_05
+No multi unit data availible: recording	hamilton_05
+adding recording: hamilton_06
+adding recording: hamilton_17
+adding recording: hamilton_18
+adding recording: hamilton_24
+adding recording: hamilton_07
+adding recording: hamilton_08
+adding recording: hamilton_19
+adding recording: hamilton_20
+Traceback (most recent call last):
+  File "db_populating.py", line 473, in <module>
+    main(db_str, args.config, args.on_duplicate, args.init)
+  File "db_populating.py", line 456, in main
+    Path(config['directories']['extracted']).joinpath(recording))
+  File "db_populating.py", line 410, in load_extracted_data
+    '.')[0]] = feather.read_dataframe(file)
+  File "/home/ruairi/anaconda3/lib/python3.6/site-packages/pyarrow/feather.py", line 211, in read_feather
+    reader = FeatherReader(source)
+  File "/home/ruairi/anaconda3/lib/python3.6/site-packages/pyarrow/feather.py", line 38, in __init__
+    self.open(source)
+  File "pyarrow/feather.pxi", line 80, in pyarrow.lib.FeatherReader.open
+  File "pyarrow/io.pxi", line 1271, in pyarrow.lib.get_reader
+  File "pyarrow/io.pxi", line 1260, in pyarrow.lib._get_native_file
+  File "pyarrow/io.pxi", line 738, in pyarrow.lib.memory_map
+  File "pyarrow/io.pxi", line 701, in pyarrow.lib.MemoryMappedFile._open
+  File "pyarrow/error.pxi", line 83, in pyarrow.lib.check_status
+pyarrow.lib.ArrowIOError: Failed to open local file: /media/ruairi/big_bck/HAMILTON/extracted/hamilton_23/trials.feather , error: No such file or directory

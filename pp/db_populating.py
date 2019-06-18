@@ -11,6 +11,8 @@ import pdb
 from sqlalchemy.exc import IntegrityError
 import numpy as np
 import datetime
+import sys
+from pyarrow import ArrowIOError
 
 
 def _get_options():
@@ -27,13 +29,17 @@ def _get_options():
                         'Defaults to fail')
     parser.add_argument('-c', '--config', required=True,
                         help='Path to config .json file')
+    parser.add_argument('-l', '--logmode', required=True,
+                        help='mode to open db_inserted logfile {"w", "a"}.\n'
+                        'defaults to "a"')
     return parser.parse_args()
 
 
 class DBInserter:
 
     def __init__(self, constr, **kwargs):
-        self.eng = sa.create_engine(constr, pool_size=40, max_overflow=40)
+        self.eng = sa.create_engine(
+            constr, pool_size=100, pool_recycle=3600, max_overflow=40,  pool_pre_ping=True)
         self.metadata = sa.MetaData()
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -107,6 +113,8 @@ class DBInserter:
             'ifr', self.metadata, autoload=True, autoload_with=self.eng)
         eshock_table = sa.Table(
             'eshock_events', self.metadata, autoload=True, autoload_with=self.eng)
+        block_lengths_table = sa.Table(
+            'block_lengths', self.metadata, autoload=True, autoload_with=self.eng)
 
         try:
             recordings_data = self._format_recordings()
@@ -179,6 +187,16 @@ class DBInserter:
                   f'\t{self.recordings_params["name"]}')
             pass
 
+        try:
+            block_lengths_data = self._format_blocklengths()
+            assert block_lengths_data
+            self.add_table(engine=self.eng, table=block_lengths_table,
+                           data=block_lengths_data, on_duplicate=self.on_duplicate)
+        except AssertionError:
+            print('No block length data availible: recording'
+                  f'\t{self.recordings_params["name"]}')
+            pass
+
     @staticmethod
     def get_ids(engine, new_data, ref_table,
                 ref_table_contraint_col, ref_table_contraint_data,
@@ -195,23 +213,34 @@ class DBInserter:
 
     @staticmethod
     def add_table(engine, table, data, on_duplicate=None,
-                  identidier_col=None, identifier_data=None):
+                  identidier_col=None, identifier_data=None,
+                  chunk_size=5000):
         '''identifier col is the column to use to check if the data has already been added
         identifier data is the value in data used to identify whether data is already present in the
         db'''
-        with engine.connect() as con:
-            try:
-                res = con.execute(insert(table, data))
-            except IntegrityError:
-                if (on_duplicate == 'fail') or (on_duplicate == 'skip'):
-                    raise ValueError(
-                        f'Dubplicate entry found in {on_duplicate} mode when inserting')
-                elif on_duplicate == 'redo':
-                    assert (identidier_col is not None) and (
-                        identifier_data is not None)
-                    con.execute(sa.delete(table).where(
-                        identidier_col == identifier_data))
-                res = con.execute(insert(table), data)
+
+        def _chunks(l: list, n):
+            ''' yeild sucessive chunks of n elements from l'''
+            for i in range(0, len(l), n):
+                yield l[i:i+n]
+
+        if isinstance(data, dict):
+            data = [data]
+        for chunk in _chunks(data, chunk_size):
+
+            with engine.connect() as con:
+                try:
+                    res = con.execute(insert(table, chunk))
+                except IntegrityError:
+                    if (on_duplicate == 'fail') or (on_duplicate == 'skip'):
+                        raise ValueError(
+                            f'Dubplicate entry found in {on_duplicate} mode when inserting')
+                    elif on_duplicate == 'redo':
+                        assert (identidier_col is not None) and (
+                            identifier_data is not None)
+                        con.execute(sa.delete(table).where(
+                            identidier_col == identifier_data))
+                    res = con.execute(insert(table), chunk)
         return res
 
     @staticmethod
@@ -360,6 +389,19 @@ class DBInserter:
         data['recording_id'] = self.recording_id
         return data.pipe(self.nan_to_null).pipe(self.to_dict)
 
+    def _format_blocklengths(self):
+        assert self.recordings_params
+        data = self.recordings_params.copy()
+        del data["name"]
+        del data["exp_name"]
+        del data["group_id"]
+        del data["start_time"]
+        del data["date"]
+        df = pd.DataFrame(data, index=[0]).\
+            pipe(pd.melt, var_name='block_name', value_name='block_length')
+        df['recording_id'] = self.recording_id
+        return df.pipe(self.nan_to_null).pipe(self.to_dict)
+
     def _format_temperature(self):
         pass
 
@@ -399,13 +441,13 @@ def load_extracted_data(root: Path, extracted_files=None):
                 with file.open() as f:
                     extracted_data[file.name.split('.')[0]] = json.load(f)
 
-        except FileNotFoundError:
+        except (FileNotFoundError, ArrowIOError):
             print(f'Error during file import: {str(file)}')
             pass
     return extracted_data
 
 
-def main(db_str, config, on_duplicate, init=False):
+def main(db_str, config, on_duplicate, logmode='a', init=False):
 
     with open(config) as f:
         config = json.load(f)
@@ -427,7 +469,7 @@ def main(db_str, config, on_duplicate, init=False):
         reader = csv.reader(f)
         inserted_recordings = [row[0] for row in reader if row]
 
-    for recording in kilosorted_recordings:
+    for i, recording in enumerate(set(kilosorted_recordings)):
         if recording in inserted_recordings:
             if on_duplicate == 'fail':
                 raise ValueError(
@@ -450,8 +492,17 @@ def main(db_str, config, on_duplicate, init=False):
             **extracted_data)
         inserter.add_recording()
 
+        if i == 0 and logmode == 'w':
+            mode = 'w'
+        else:
+            mode = 'a'
+        with open(log_out_path, mode) as f:
+            line = ','.join(
+                [recording, str(datetime.datetime.now()), '\n'])
+            f.write(line)
+
 
 if __name__ == "__main__":
     db_str = 'mysql+pymysql://ruairi:@localhost/ephys'
     args = _get_options()
-    main(db_str, args.config, args.on_duplicate, args.init)
+    main(db_str, args.config, args.on_duplicate, args.logmode, args.init)

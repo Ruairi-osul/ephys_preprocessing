@@ -72,16 +72,29 @@ def main(config_path, on_duplicate, log_mode):
         except AssertionError:
             if on_duplicate == 'skip':
                 print(f'Duplicate found.'
-                      f'Skipping {recording["name"]}')
+                      f'Skipping \t{recording["name"]}')
                 continue
             elif on_duplicate == 'fail':
                 raise ValueError('Duplicate found in "fail" mode')
             elif on_duplicate == 'redo':
                 pass
 
-        continuous_dirs = {block_name: continuous_dir.joinpath(d)
-                           if d is not None else None
-                           for block_name, d in recording['continuous_dirs'].items()}
+        continuous_dirs = {}
+        for block_name, d in recording['continuous_dirs'].items():
+            if d is None:
+                val = None
+            elif isinstance(d, str):
+                val = continuous_dir.joinpath(d)
+            elif isinstance(d, list) or isinstance(d, tuple):
+                val = [continuous_dir.joinpath(d_) for d_ in d]
+            else:
+                raise ValueError(
+                    f'Cannot parse continuous dirs: {recording["name"]}')
+            continuous_dirs[block_name] = val
+
+        # continuous_dirs = {block_name: continuous_dir.joinpath(d)
+        #                    if d is not None else None
+        #                    for block_name, d in recording['continuous_dirs'].items()}
 
         recording_params = Path(
             experiment_params['directories']['extracted']
@@ -94,10 +107,16 @@ def main(config_path, on_duplicate, log_mode):
         temperature_chan = recording['adc_chans']['temperature'] if (
             'adc_chans' in recording) and ('temperature' in recording['adc_chans']) else None
 
-        processor = SpikeSortedRecording(path=kilosort_path,
-                                         extracted=experiment_params['directories']['extracted'],
-                                         continuous_dirs=continuous_dirs,
-                                         blocks=experiment_params['recording_config']['blocks'], recording_params=recording_params)
+        try:
+            processor = SpikeSortedRecording(path=kilosort_path,
+                                             extracted=experiment_params['directories']['extracted'],
+                                             continuous_dirs=continuous_dirs,
+                                             blocks=experiment_params['recording_config']['blocks'],
+                                             recording_params=recording_params)
+        except FileNotFoundError:
+            print('Failed to load Kilosort data:\t'
+                  f'{recording["name"]}')
+            continue
 
         if len(processor.good_clusters) > 0:
             processor.set_waveforms()

@@ -23,6 +23,11 @@
             "chal",
             "way"
         ],
+        "block_lenghts": {
+            "pre": 60,
+            "chal": 60,
+            "way": 60
+        },
         "adc": null,
         "eeg": [
             "frontal_left",

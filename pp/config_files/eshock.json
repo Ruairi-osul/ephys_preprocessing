@@ -5,7 +5,7 @@
         "continuous_dir": "/media/ruairi/big_bck/ESHOCK/continuous",
         "tmp_dat_dir": "/media/ruairi/big_bck/ESHOCK/temp_dat_dir",
         "probe_dat_dir": "/media/ruairi/big_bck/ESHOCK/probe_dat_files",
-        "experimental_groups": "/media/ruairi/big_bck/ESHOCK/groups/experimental_groups.csv",
+        "experimental_groups": "/media/ruairi/big_bck/ESHOCK/group_info/experimental_groups.csv",
         "extracted": "/media/ruairi/big_bck/ESHOCK/extracted",
         "continuous_mapper": "/media/ruairi/big_bck/ESHOCK/config_files/eshock_continuous_mapper.json"
     },
@@ -24,6 +24,12 @@
             "post_shock",
             "dpat"
         ],
+        "block_lenghts": {
+            "pre": 60,
+            "shock": 30,
+            "post_shock": 10,
+            "dpat": 30
+        },
         "adc": [
             "eshock_ttl"
         ],
