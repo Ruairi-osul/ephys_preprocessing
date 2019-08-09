@@ -40,6 +40,9 @@
             "eshock_ttl",
             "temperature"
         ],
+        "ttls": [
+            "eshock_digital_ttl"
+        ],
         "probe_chanmap": [
             22,
             17,

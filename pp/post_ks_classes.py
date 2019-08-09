@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from preprocess import _extract_waveforms, loadContinuous
+from utils import loadEvents
 from functools import partial
 from neo_bridge import df_to_neo, neo_to_df
 from quantities import s
@@ -23,6 +24,7 @@ class SpikeSortedRecording:
     def __init__(self, path: Path, extracted: Path, blocks: list, continuous_dirs: dict = None,
                  nchans: int = 32, fs: int = 30000, max_intertrial_interval=2, recording_params=None,
                  verbose=True):
+        'TODO: change to class with active methods. then can change adc method of trial'
 
         self.verbose = verbose
 
@@ -100,9 +102,7 @@ class SpikeSortedRecording:
         self.ifr = pd.melt(ifr_df, id_vars='time',
                            var_name='cluster_id', value_name='firing_rate')
 
-    def set_discrete_events(self, discrete_event_chan, threshold=2, num_skip=4):
-        if self.verbose:
-            print('Finding discrete events')
+    def get_adc_events(self, chan, threshold=2, num_skip=4):
         data = []
         for block_num, block_name in enumerate(self.blocks):
             paths = self.continuous_dirs[block_name]
@@ -117,7 +117,7 @@ class SpikeSortedRecording:
                 continuous_rec = ContinuousRecording(
                     path, verbose=self.verbose)
                 try:
-                    continuous_rec.set_single_file(ch=discrete_event_chan)
+                    continuous_rec.set_single_file(ch=chan)
                     data.append(continuous_rec.data)
                 except ValueError:
                     print(f'Data corrupt: {path}')
@@ -125,7 +125,56 @@ class SpikeSortedRecording:
             data = np.concatenate(data)
             data = np.diff(data)
             discrete_events = np.argwhere(data > threshold).flatten()
-            self.discrete_events = discrete_events[num_skip:]
+            return discrete_events[num_skip:]
+
+    def get_manual_events(self, fname):
+        return np.load(self.extracted.joinpath(fname))
+
+    def get_digital_events(self, events_name='all_channels.events', data_chan='120_CH14.continuous'):
+        event_dfs = []
+        # loop over each block
+        for block_num, block_name in enumerate(self.blocks):
+            paths = self.continuous_dirs[block_name]
+            # if it has the block, load it
+            if paths is None:
+                if block_num == 0:
+                    raise IOError('Could not find baseline continuous dir'
+                                  f'for {self.path.name}')
+                continue
+            paths = [paths] if not isinstance(paths, list) \
+                else paths  # check for multiple continuous files per block
+            for i, path in enumerate(paths):
+                path = Path(path)
+                data = loadContinuous(path.joinpath(data_chan))
+                first_timestamp = data['timestamps'][0]
+                # this is how the block lengths are labels in the recording_params.json in extracted
+                block_start = self.recording_params[''.join(
+                    [block_name, str(i)])]
+                events = loadEvents(path.joinpath(events_name))
+                df = pd.DataFrame(
+                    {'channel': events['channel'],
+                     'timestamps': events['timestamps'],
+                     'eventid': events['eventId']})
+                df = df[(df['eventid'] == 1) & (df['channel'] == int('4'))]
+                df = df.assign(timestamps=lambda x: x['timestamps'] - first_timestamp + block_start)\
+                    .pipe(lambda x: x.iloc[4:, :])  # skip the first couple of trials
+
+                event_dfs.append(df)
+        df_timestamps = pd.concat(event_dfs)
+        return df_timestamps['timestamps'].values.astype(int)
+
+    def set_discrete_events(self, events_dict):
+        if self.verbose:
+            print('Finding discrete events')
+        if list(events_dict.keys())[0] == 'adc':
+            events = self.get_adc_events(chan=events_dict['adc'])
+        elif list(events_dict.keys())[0].upper() == 'MANUAL':
+            events = self.get_manual_events(
+                fname=list(events_dict.values())[0])
+        elif list(events_dict.keys())[0] == 'ttl':
+            events = self.get_digital_events()
+
+        self.discrete_events = events
 
     def get_trials_set_lacencies(self, trial_start=0.5, max_intertrial_interval=2):
         '''update good spike_times to include time relivate to last discrete event'''

@@ -1,4 +1,4 @@
-from utils import loadFolderToArray, loadContinuous
+from utils import loadFolderToArray, loadContinuous, loadEvents
 import numpy as np
 import os
 from pathlib import Path
@@ -56,6 +56,10 @@ class ContinuousRecording:
             raise IOError(
                 'Could not load continuous files\n{}'.format(str(self.path)))
         self.data = data
+
+    def load_events(self, chan='all_channels.events'):
+        # TODO
+        pass
 
     def set_single_file(self, ch='1', chprefix='CH'):
         'specify ch as a string integer'

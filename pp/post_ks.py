@@ -31,6 +31,14 @@ def load_json(path):
     return out
 
 
+def _int_test(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
+
 def main(config_path, on_duplicate, log_mode):
     # load params
     experiment_params = load_json(config_path)
@@ -40,6 +48,8 @@ def main(config_path, on_duplicate, log_mode):
 
     log_in_path = experiment_params['log_files']['kilosort']
     log_out_path = experiment_params['log_files']['post_kilosort']
+
+    # get recordings already done
     if on_duplicate != 'redo':
         with open(log_out_path, 'r') as f:
             reader = csv.reader(f)
@@ -47,6 +57,7 @@ def main(config_path, on_duplicate, log_mode):
     else:
         done = []
 
+    # get all kilosorted recordings
     with open(log_in_path, 'r') as f:
         reader = csv.reader(f)
         kilosorted_recordings = [Path(row[0]) if Path(row[0]).is_absolute() else Path(
@@ -54,11 +65,12 @@ def main(config_path, on_duplicate, log_mode):
             for row in reader if row]
 
     for i, recording in enumerate(continuous_mapper.values()):
-        # has continuous_mapper been properly completed for this recording?
+        # input quality: continuous mapper entered correctly
         if 'continuous_dirs' not in recording:
             print('Continuous dirs field not found.'
                   f'Skipping {recording["name"]}')
-        # Has kilosort been done?
+            continue
+        # input quality: kilosort log check
         try:
             kilosort_path = next(
                 filter(lambda x: x.name == recording['name'], kilosorted_recordings))
@@ -66,12 +78,12 @@ def main(config_path, on_duplicate, log_mode):
             print(f'Kilosort not yet completed: {recording["name"]}\n'
                   'continuing...')
             continue
-        # has post_ks already been ran on this recording?
+        # duplicate check: has post_ks previously ran on this recording?
         try:
             assert recording['name'] not in done
         except AssertionError:
             if on_duplicate == 'skip':
-                print(f'Duplicate found.'
+                print(f'Duplicate found. '
                       f'Skipping \t{recording["name"]}')
                 continue
             elif on_duplicate == 'fail':
@@ -79,6 +91,7 @@ def main(config_path, on_duplicate, log_mode):
             elif on_duplicate == 'redo':
                 pass
 
+        # format continuous dirs to be absolute paths
         continuous_dirs = {}
         for block_name, d in recording['continuous_dirs'].items():
             if d is None:
@@ -92,20 +105,38 @@ def main(config_path, on_duplicate, log_mode):
                     f'Cannot parse continuous dirs: {recording["name"]}')
             continuous_dirs[block_name] = val
 
-        # continuous_dirs = {block_name: continuous_dir.joinpath(d)
-        #                    if d is not None else None
-        #                    for block_name, d in recording['continuous_dirs'].items()}
-
+        # load 'recordings_params.json' from extracted dir
         recording_params = Path(
             experiment_params['directories']['extracted']
         ).joinpath(recording['name']).joinpath('recordings_params.json')
         with recording_params.open() as f:
             recording_params = json.load(f)
 
-        eshock_chan = recording['adc_chans']['eshock_ttl'] if (
-            'adc_chans' in recording) and ('eshock_ttl' in recording['adc_chans']) else None
-        temperature_chan = recording['adc_chans']['temperature'] if (
-            'adc_chans' in recording) and ('temperature' in recording['adc_chans']) else None
+        # create events dict
+        if recording_params['exp_name'] == 'hamilton':
+            con_mapper = continuous_mapper[recording_params['name']]
+            if con_mapper['adc_chans']["eshock_ttl"] is not None:
+                events = {
+                    'adc': con_mapper['adc_chans']["eshock_ttl"]}
+            elif 'ttls' in con_mapper and "eshock_digital_ttl" in con_mapper['ttls']:
+                if con_mapper['ttls']["eshock_digital_ttl"].upper() == 'MANUAL':
+                    events = {'MANUAL': Path(experiment_params['directories']['extracted']).joinpath(
+                        recording['name']).joinpath('manual_events.npy')}
+                elif _int_test(con_mapper['ttls']["eshock_digital_ttl"]):
+                    events = {'ttl': con_mapper['ttls']["eshock_digital_ttl"]}
+            else:
+                events = None
+                print('No events files found in continuous mapper: {}'.format(
+                    recording_params['name']))
+        else:
+            events = None
+            print('No events files found in continuous mapper: {}'.format(
+                recording_params['name']))
+
+        # eshock_chan = recording['adc_chans']['eshock_ttl'] if (
+        #     'adc_chans' in recording) and ('eshock_ttl' in recording['adc_chans']) else None
+        # temperature_chan = recording['adc_chans']['temperature'] if (
+        #     'adc_chans' in recording) and ('temperature' in recording['adc_chans']) else None
 
         try:
             processor = SpikeSortedRecording(path=kilosort_path,
@@ -123,12 +154,10 @@ def main(config_path, on_duplicate, log_mode):
             processor.set_ifr()
 
         # pdb.set_trace()
-        if eshock_chan is not None:
-            processor.set_discrete_events(eshock_chan)
+        if events is not None:
+            processor.set_discrete_events(events)
             processor.get_trials_set_lacencies()
-        if temperature_chan is not None:
-            # TODO!!!
-            pass
+
         processor.save()
 
         if i == 0 and log_mode == 'w':

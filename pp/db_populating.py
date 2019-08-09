@@ -476,6 +476,7 @@ def main(db_str, config, on_duplicate, logmode='a', init=False):
                     'Previously-inserted recording attempted to be inserted in "fail" mode')
             elif on_duplicate == 'skip':
                 print(f'skipping {recording}')
+                continue
             elif on_duplicate == 'redo':
                 pass
             else:
